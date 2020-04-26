@@ -1,0 +1,9 @@
+build/
+sdkconfig.old
+*.bak
+*.a
+*.tmp
+.vscode/
+cmake-build-debug/
+.idea/
+*.iml
