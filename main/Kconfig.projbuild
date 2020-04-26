@@ -1,0 +1,21 @@
+menu "IOT-MQTT Module"
+    config IOT_MQTT_ENABLED
+        bool "IOT MQTT"
+        default "y"
+        help
+            Select this option to enable MQTT and show the submenu with MQTT configuration choices.
+
+    menu "MQTT Configuration"
+        visible if IOT_MQTT_ENABLED
+    endmenu
+endmenu
+
+
+menu "Global configuration"
+config GLOBAL_DEBUG
+    int "Global debugging debug switch"
+    default 0 
+    help 
+        When it is turned on, esp? Logi will print sensitive information. formal
+endmenu
+
