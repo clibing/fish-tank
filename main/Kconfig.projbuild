@@ -1,21 +1,71 @@
-menu "IOT-MQTT Module"
-    config IOT_MQTT_ENABLED
-        bool "IOT MQTT"
-        default "y"
-        help
-            Select this option to enable MQTT and show the submenu with MQTT configuration choices.
+menu "Fish Tank"
+    menu "Global Configuration"
+        config GLOBAL_DEBUG
+            bool "Global debugging debug switch"
+            default "y"
+            help
+                Global log level. When enabled, all log levels will be set
+
+        config WiFi_DEFAULT_ENABLE
+            bool "Whether to use the default WiFi configuration"
+            default "n"
+            help
+                The default WiFi is station configuration. You need to configure the name and password of the hotspot.
+
+        config MQTT_ENABLED
+            bool "Is the mqtt module available"
+            default "y"
+            help
+                Select this option to enable MQTT and show the submenu with MQTT configuration choices.
+    endmenu
+
+    menu "GPIO Pin Mode"
+        menu "ESP8266 GPIO Pin number"
+            visible if IDF_TARGET_ESP8266
+
+            config SMART_CONFIG_BTN_PIN
+                int "Smartconfig one key distribution network pin"
+                default 15
+                help
+                    Pin triggering smartconfig one key distribution network key
+        endmenu
+
+        menu "ESP32 GPIO Pin number"
+            visible if IDF_TARGET_ESP32
+
+            config SMART_CONFIG_BTN_PIN
+                int "Smartconfig one key distribution network pin"
+                default 5
+                help
+                    Pin triggering smartconfig one key distribution network key
+        endmenu
+    endmenu
 
     menu "MQTT Configuration"
-        visible if IOT_MQTT_ENABLED
+        visible if MQTT_ENABLED
+
+        config BROKER_URI
+            string "Broker URL"
+            default "mqtts://mqtt.clibing.com:8883"
+            help
+                URL of an mqtt broker which this example connects to.
     endmenu
-endmenu
 
+    menu "WiFi Default Configuration"
+        visible if WiFi_DEFAULT_ENABLE
 
-menu "Global configuration"
-config GLOBAL_DEBUG
-    int "Global debugging debug switch"
-    default 0 
-    help 
-        When it is turned on, esp? Logi will print sensitive information. formal
+        config WIFI_SSID
+            string "Access to ssid of WiFi"
+            default "wifi"
+            help
+                Default access to SSID of WiFi.
+
+        config WIFI_PWD
+            string "Access to password of WiFi"
+            default "111111"
+            help
+                Default access to password of WiFi.
+    endmenu
+
 endmenu
 
