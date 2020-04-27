@@ -45,13 +45,7 @@ void app_main(void)
     ELOGD(FISH_TANK_TAG, "Hello word");
     ESP_LOGD(FISH_TANK_TAG, "Hello word");
 
-    // 检测启动原因， 进入配网模式
-    // 是否需要进入配网 采用按键配网, 按键超过10秒，重启，
-    // 再次检测pin是否为高点品则进入配网。
-    // 暂时不考虑下发指令配网, 与灯不同。
-    // 灯一般高度较高，不方便
 
-    //
 
 
 
