@@ -46,7 +46,76 @@
 
 * 4.1 物联控制端
 
-```flow
+```plantuml
+@startuml
+title 设备启动初始化流程
+
+start
+:加电;
+-> 3.3v;
+floating note left: ESP供电与设备供电隔离
+:nvs初始化;
+if (condition 初始状态) then (yes)
+  :初始化GPIO按键;
+  :初始化OLED屏幕;
+  :显示系统加载中Loading...;
+else (no)
+  :显示系统异常LED;
+  stop
+endif
+
+if (condition 按键是否按下) then (yes)
+  : 检查按键持续时间;
+  if (condition 大于10s) then (yes)
+    : 进入配网流程;
+    : 启动一个超时监听任务;
+    if (condition 配置超过60秒) then (yes)
+      :restart;
+      end
+    endif
+  endif
+else (no)
+  : 接入网络;
+  if (condition 成功接入) then (yes)
+    : 成功接入网络，并获取ip;
+    : OLED显示当前ip地址;
+    : 发送网络接入成功信号;
+    : 等待网络接入正常后进行MQTT接入;
+    if (condition 状态) then (yes)
+      : 设置掉线遗言;
+      : 订阅相关的主题;
+    else (no)
+      : 点亮系统异常;
+      : OLED中显示详细的错误;
+      : 启动超时重连任务;
+      if (condition 配置超过60秒) then (yes)
+        :restart;
+        end
+      endif
+    endif
+  else (no)
+    : 点亮系统异常;
+    : OLED中显示详细的错误;
+    if (condition 配置超过60秒) then (yes)
+      :restart;
+      end
+    endif
+  endif
+endif
+
+:接收消息;
+
+while (condtion 消息类型)
+:根据消息处理}
+:打开LED照明]
+:打开排便水泵]
+:打开供氧]
+endwhile
+end
+@enduml
+ ```
+
+<!-- ```flow
 power=>start: 加电
 shutdown=>end: 关机
 restart=>operation: 重启
@@ -114,7 +183,7 @@ message-o2(no)->message-timer
 message-timer(yes)->oled-draw
 message-timer(no)->other-ext
 
-```
+``` -->
 
 
 
@@ -126,3 +195,4 @@ message-timer(no)->other-ext
 
 * [sdk](https://github.com/espressif/ESP8266_RTOS_SDK)
 * [document](https://docs.espressif.com/projects/esp8266-rtos-sdk/en/latest/?badge=latest)
+* [PlantUML and Gitlab Support](https://blog.csdn.net/aixiaoyang168/article/details/76888254)
