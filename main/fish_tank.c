@@ -34,6 +34,11 @@
 
 static const char *FISH_TANK_TAG = "fish_tank";
 
+void after_nvs_init_event()
+{
+    ESP_LOGD(FISH_TANK_TAG, "after nvs init event");
+}
+
 /**
  * @author clibing
  * @function user application start
@@ -41,12 +46,8 @@ static const char *FISH_TANK_TAG = "fish_tank";
  */
 void app_main(void)
 {
-    iot_nvs_init();
-    ELOGD(FISH_TANK_TAG, "Hello word");
+    iot_nvs_init(after_nvs_init_event);
     ESP_LOGD(FISH_TANK_TAG, "Hello word");
 
-
-
-
-
+    // Check post startup events
 }
