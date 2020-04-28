@@ -147,8 +147,6 @@ void app_main(void) {
     oled_show_str(1, 1, "Loading..", &Font_7x10, 1);
 
     // check pin btn smartconfig network press
-
-//    vTaskDelay(3000 / portTICK_RATE_MS);
     initialise_wifi(0, after_network_connect);
 
 
