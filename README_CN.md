@@ -26,6 +26,12 @@
 #### 电路周围
 
 * [ ] OLED 显示如下
+  + 基础电路
+    - GND: GND
+    - VCC: 3.3v
+    - SCL: GPIO 12 (NodeMCU D6)
+    - SDA: GPIO 13 (NodeMCU D7)
+    - RESET: GPIO 15 (NodeMCU D8)
   + 温度、湿度
   + 水温
   + 今日天气
