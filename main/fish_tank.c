@@ -33,6 +33,8 @@
 
 #include "common_nvs.h"
 
+#include "iot_fonts.h"
+#include "iot_oled.h"
 
 #define SMART_CONFIG_BTN    CONFIG_SMART_CONFIG_BTN_PIN
 #define SMART_CONFIG_PIN_SEL  1ULL<<SMART_CONFIG_BTN
