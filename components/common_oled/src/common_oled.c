@@ -13,10 +13,10 @@
 */
 #include "string.h"
 #include "stdlib.h"
-#include "common_fonts.h"
 #include "esp_log.h"
 #include "driver/gpio.h"
 
+#include "common_fonts.h"
 #include "common_oled.h"
 
 #define RSET_OUTPUT_IO                  CONFIG_OLED_RESET_OUTPUT_PIN

@@ -33,18 +33,17 @@
 #include "lwip/apps/sntp.h"
 
 #include "common_nvs.h"
-
 #include "common_fonts.h"
 #include "common_oled.h"
 #include "common_network.h"
 
 #define SMART_CONFIG_BTN    CONFIG_SMART_CONFIG_BTN_PIN
-#define SMART_CONFIG_PIN_SEL  1ULL<<SMART_CONFIG_BTN
+#define SMART_CONFIG_PIN_SEL  (1ULL<<SMART_CONFIG_BTN)
 
 #define WATER_PUMP_PIN      CONFIG_WATER_PUMP_PIN
 #define O2_PUMP_PIN         CONFIG_O2_PUMP_PIN
 #define LED_PIN             CONFIG_LED_PIN
-#define GPIO_OUT_PIN_SSL    ((1ULL<<WATER_PUMP_PIN) | (1ULL<<O2_PUMP_PIN) | (1ULL<<LED_PIN))
+#define GPIO_FT_OUT_PIN_SSL    ((1ULL<<WATER_PUMP_PIN) | (1ULL<<O2_PUMP_PIN) | (1ULL<<LED_PIN))
 
 extern uint32_t esp_get_time(void);
 
@@ -90,13 +89,16 @@ static void gpio_task(void *arg) {
     }
 }
 
-static void gpio_smart_config_init() {
+void gpio_smart_config_init() {
+    ESP_LOGD(FISH_TANK_TAG, "current SMART_CONFIG_BTN: %d, WATER_PUMP_PIN: %d, O2_PUMP_PIN: %d, LED_PIN: %d ",
+             SMART_CONFIG_BTN, WATER_PUMP_PIN, O2_PUMP_PIN, LED_PIN);
     gpio_config_t io_conf;
     io_conf.intr_type = GPIO_INTR_DISABLE;
     io_conf.mode = GPIO_MODE_OUTPUT;
-    io_conf.pin_bit_mask = GPIO_OUT_PIN_SSL;
+    io_conf.pin_bit_mask = GPIO_FT_OUT_PIN_SSL;
     io_conf.pull_down_en = 0;
     io_conf.pull_up_en = 0;
+    ESP_LOGD(FISH_TANK_TAG, "0");
     gpio_config(&io_conf);
 
     io_conf.intr_type = GPIO_INTR_POSEDGE;
@@ -105,12 +107,18 @@ static void gpio_smart_config_init() {
     io_conf.pull_up_en = 1;
     gpio_config(&io_conf);
 
+    ESP_LOGD(FISH_TANK_TAG, "1");
     gpio_set_intr_type(SMART_CONFIG_BTN, GPIO_INTR_ANYEDGE);
+    ESP_LOGD(FISH_TANK_TAG, "11<<<<<<");
     gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
+    ESP_LOGD(FISH_TANK_TAG, "111>>>>>");
     xTaskCreate(gpio_task, "gpio_task", 2048, NULL, 10, NULL);
 
+    ESP_LOGD(FISH_TANK_TAG, "1111++++");
     gpio_install_isr_service(0);
+    ESP_LOGD(FISH_TANK_TAG, "11111=====");
     gpio_isr_handler_add(SMART_CONFIG_BTN, gpio_isr_handler, (void *) SMART_CONFIG_BTN);
+    ESP_LOGD(FISH_TANK_TAG, "111111-----");
 
 }
 
@@ -120,14 +128,19 @@ void after_nvs_init_event() {
 
 void after_network_connect(int type, int status) {
     ESP_LOGD(FISH_TANK_TAG, "after network type: %d, the status: %d", type, status);
-    if(status != 1){
-        oled_show_str(1, 1, "Network error", &Font_7x10, 1);
+    if (status != 1) {
+//        oled_show_str(1, 1, "Network error", &Font_7x10, 1);
         return;
-    }else{
-        oled_show_str(1, 1, "Network success", &Font_7x10, 1);
+    } else {
+//        oled_show_str(1, 1, "Network success", &Font_7x10, 1);
     }
     // mqtt connection...
 }
+
+//static void init_wifi() {
+//    initialise_wifi(after_network_connect, 0);
+//}
+
 /**
  * @author clibing
  * @function user application start
@@ -138,16 +151,16 @@ void app_main(void) {
     iot_nvs_init(after_nvs_init_event);
     // Check post startup events
 
-    ESP_LOGD(FISH_TANK_TAG, "gpio btn init... %d\n", SMART_CONFIG_BTN);
     gpio_smart_config_init();
+    ESP_LOGD(FISH_TANK_TAG, "gpio btn init... %d\n", SMART_CONFIG_BTN);
 
     // oled
-    oled_init();
-    oled_all_on();
-    oled_show_str(1, 1, "Loading..", &Font_7x10, 1);
+//    oled_init();
+//    oled_all_on();
+//    oled_show_str(1, 1, "Loading..", &Font_7x10, 1);
 
     // check pin btn smartconfig network press
-    initialise_wifi(0, after_network_connect);
+//    init_wifi();
 
 
     int cnt = 0;

@@ -41,8 +41,8 @@ static esp_err_t event_handler(void *ctx, system_event_t *event) {
             retry = 0;
             xEventGroupSetBits(wifi_event_group, CONNECTED_BIT);
             // normal connection wifi
-            if (type == 1){
-               current_callback(type, 1);
+            if (type == 1) {
+                current_callback(type, 1);
             }
             break;
         case SYSTEM_EVENT_STA_DISCONNECTED:
@@ -54,7 +54,7 @@ static esp_err_t event_handler(void *ctx, system_event_t *event) {
             }
             esp_wifi_connect();
             xEventGroupClearBits(wifi_event_group, CONNECTED_BIT);
-            if( retry > 3){
+            if (retry > 3) {
                 esp_wifi_stop();
                 current_callback(type, -1);
             }
@@ -122,7 +122,7 @@ void smartconfig_task(void *parm) {
         if (uxBits & ESPTOUCH_DONE_BIT) {
             ESP_LOGI(COMMON_NETWORK, "smartconfig over");
             esp_smartconfig_stop();
-            if (type == 2){
+            if (type == 2) {
                 current_callback(type, 1);
             }
             vTaskDelete(NULL);
@@ -130,7 +130,8 @@ void smartconfig_task(void *parm) {
     }
 }
 
-static void initialise_wifi(int is_smart_config, wifi_callback_t callback) {
+
+void initialise_wifi(wifi_callback_t callback, int is_smart_config) {
     tcpip_adapter_init();
     wifi_event_group = xEventGroupCreate();
     ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
@@ -152,4 +153,3 @@ static void initialise_wifi(int is_smart_config, wifi_callback_t callback) {
     // start smart config network
     xTaskCreate(smartconfig_task, "smartconfig_task", 4096, NULL, 3, NULL);
 }
-

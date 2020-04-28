@@ -31,25 +31,25 @@ menu "Fish Tank"
 
             config SMART_CONFIG_BTN_PIN
                 int "Smartconfig one key distribution network pin"
-                default 9
+                default 4
                 help
                     Pin triggering smartconfig one key distribution network key
 
             config WATER_PUMP_PIN
                 int "Water pump switch"
-                default 10
+                default 14
                 help
                     Water pump control pin
 
             config O2_PUMP_PIN
                 int "O2 pump control pin"
-                default 11
+                default 15
                 help
                     O2 pump control pin
 
             config LED_PIN
                 int "LED control pin"
-                default 12
+                default 16
                 help
                     LED control pin
         endmenu

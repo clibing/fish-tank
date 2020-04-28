@@ -15,7 +15,7 @@
 
 static const char *NVS_TAG = "common_nvs";
 
-void iot_nvs_init(nvs_callback_t callback)
+void iot_nvs_init()
 {
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES)
@@ -27,5 +27,5 @@ void iot_nvs_init(nvs_callback_t callback)
     ESP_ERROR_CHECK(ret);
     ESP_LOGI(NVS_TAG, "nvs flash init ok.");
 
-    callback();
+//    callback();
 }
