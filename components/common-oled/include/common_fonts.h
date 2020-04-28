@@ -6,8 +6,8 @@
 * @par Copyright (c):  
 *               红旭无线开发团队，QQ群：671139854
 */
-#ifndef _IOT_FONTS_H_
-#define _IOT_FONTS_H_ 120
+#ifndef _COMMON_FONTS_H_
+#define _COMMON_FONTS_H_ 120
 
 /* C++ detection */
 #ifdef __cplusplus

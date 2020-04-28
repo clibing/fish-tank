@@ -1,5 +1,5 @@
-#ifndef _IOT_NVS_H_
-#define _IOT_NVS_H_ 
+#ifndef _COMMON_NVS_H_
+#define _COMMON_NVS_H_
 
 #include "esp_types.h"
 #include "esp_err.h"

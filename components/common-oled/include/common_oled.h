@@ -6,8 +6,8 @@
 * @par Copyright (c):  
 *               红旭无线开发团队，QQ群：671139854
 */
-#ifndef _OLED_H_
-#define _OLED_H_
+#ifndef _COMMON_OLED_H_
+#define _COMMON_OLED_H_
 
 /* 
 =============
