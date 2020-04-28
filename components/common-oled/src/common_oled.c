@@ -11,13 +11,13 @@
 头文件包含
 =============
 */
-#include "common_oled.h"
 #include "string.h"
 #include "stdlib.h"
 #include "common_fonts.h"
 #include "esp_log.h"
-
 #include "driver/gpio.h"
+
+#include "common_oled.h"
 
 #define RSET_OUTPUT_IO                  CONFIG_OLED_RESET_OUTPUT_PIN
 #define RSET_OUTPUT_PIN_SEL             1<<RSET_OUTPUT_IO
