@@ -1,12 +1,12 @@
 /*
-* @file         oled.c 
+* @file         oled.c
 * @brief        ESP32操作OLED-I2C
 * @details      用户应用程序的入口文件,用户所有要实现的功能逻辑均是从该文件开始或者处理
-* @author       红旭团队 
-* @par Copyright (c):  
+* @author       红旭团队
+* @par Copyright (c):
 *               红旭无线开发团队，QQ群：671139854
 */
-/* 
+/*
 =============
 头文件包含
 =============
@@ -19,8 +19,9 @@
 
 #include "driver/gpio.h"
 
-#define RSET_OUTPUT_IO       23 
-#define RSET_OUTPUT_PIN_SEL  1<<RSET_OUTPUT_IO
+#define RSET_OUTPUT_IO                  CONFIG_OLED_RESET_OUTPUT_PIN
+#define RSET_OUTPUT_PIN_SEL             1<<RSET_OUTPUT_IO
+
 /*
 ===========================
 全局变量定义
@@ -32,8 +33,6 @@ static uint8_t g_oled_buffer[SSD1306_WIDTH * SSD1306_HEIGHT / 8];
 static SSD1306_t oled;
 //OLED是否正在显示，1显示，0等待
 static bool is_show_str = 0;
-
-static const char *OLED_TAG = "iot_oled";
 
 /*
 ===========================

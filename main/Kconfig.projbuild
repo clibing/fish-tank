@@ -17,6 +17,12 @@ menu "Fish Tank"
             default "y"
             help
                 Select this option to enable MQTT and show the submenu with MQTT configuration choices.
+
+        config OLED_ENABLED
+            bool "Whether OLED can use SPI"
+            default "y"
+            help
+                Select this option to enable OLED and show the submenu with OLED configuration choices.
     endmenu
 
     menu "GPIO Pin Mode"
@@ -65,6 +71,39 @@ menu "Fish Tank"
             default "111111"
             help
                 Default access to password of WiFi.
+    endmenu
+
+    menu "OLED Configuration"
+        visible if OLED_ENABLED
+
+        config SSD1306_ENABLED
+            bool "Whether OLED SSD1306 can use SPI"
+            default "n"
+            help
+                Select this option to enable SSD1306 and show the submenu with SSD1306 configuration choices.
+
+        menu "OLED SSD1306 Configuration"
+            visible if SSD1306_ENABLED
+
+            config OLED_RESET_OUTPUT_PIN
+                int "Reset GPIO pin of OLED"
+                default 23
+                help
+                    Reset GPIO pin of OLED, this pin control screen
+
+            config OLED_SCL_PIN
+                int "SCL GPIO pin of OLED"
+                default 33
+                help
+                    SCL GPIO pin of OLED, this pin control serial clock input
+
+            config OLED_SDA_PIN
+                int "SDA GPIO pin of OLED"
+                default 32
+                help
+                    SDA GPIO pin of OLED, this pin control Serial data input
+        endmenu
+
     endmenu
 
 endmenu

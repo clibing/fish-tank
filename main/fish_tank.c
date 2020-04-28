@@ -33,8 +33,8 @@
 
 #include "common_nvs.h"
 
-#include "iot_fonts.h"
-#include "iot_oled.h"
+#include "common_fonts.h"
+#include "common_oled.h"
 
 #define SMART_CONFIG_BTN    CONFIG_SMART_CONFIG_BTN_PIN
 #define SMART_CONFIG_PIN_SEL  1ULL<<SMART_CONFIG_BTN
@@ -69,6 +69,11 @@ void app_main(void)
 
     ESP_LOGD(FISH_TANK_TAG, "gpio btn init... %d\n", SMART_CONFIG_BTN);
     gpio_smart_config_init();
+
+    // oled
+     oled_init();
+     oled_all_on();
+     oled_show_str(1, 1,  "Loading..", &Font_7x10, 1);
 
     int cnt = 0;
     while (1) {
