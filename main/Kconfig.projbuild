@@ -31,9 +31,27 @@ menu "Fish Tank"
 
             config SMART_CONFIG_BTN_PIN
                 int "Smartconfig one key distribution network pin"
-                default 15
+                default 9
                 help
                     Pin triggering smartconfig one key distribution network key
+
+            config WATER_PUMP_PIN
+                int "Water pump switch"
+                default 10
+                help
+                    Water pump control pin
+
+            config O2_PUMP_PIN
+                int "O2 pump control pin"
+                default 11
+                help
+                    O2 pump control pin
+
+            config LED_PIN
+                int "LED control pin"
+                default 12
+                help
+                    LED control pin
         endmenu
 
         menu "ESP32 GPIO Pin number"
@@ -85,23 +103,48 @@ menu "Fish Tank"
         menu "OLED SSD1306 Configuration"
             visible if SSD1306_ENABLED
 
-            config OLED_RESET_OUTPUT_PIN
-                int "Reset GPIO pin of OLED"
-                default 23
-                help
-                    Reset GPIO pin of OLED, this pin control screen
+            menu "OLED SSD1306 ESP8266 Configuration"
+                visible if IDF_TARGET_ESP8266
+                config OLED_SCL_PIN
+                    int "SCL GPIO pin of OLED"
+                    default 12
+                    help
+                        SCL GPIO pin of OLED, this pin control serial clock input
 
-            config OLED_SCL_PIN
-                int "SCL GPIO pin of OLED"
-                default 33
-                help
-                    SCL GPIO pin of OLED, this pin control serial clock input
+                config OLED_SDA_PIN
+                    int "SDA GPIO pin of OLED"
+                    default 13
+                    help
+                        SDA GPIO pin of OLED, this pin control Serial data input
 
-            config OLED_SDA_PIN
-                int "SDA GPIO pin of OLED"
-                default 32
-                help
-                    SDA GPIO pin of OLED, this pin control Serial data input
+                config OLED_RESET_OUTPUT_PIN
+                    int "Reset GPIO pin of OLED"
+                    default 15
+                    help
+                        Reset GPIO pin of OLED, this pin control screen
+            endmenu
+
+            menu "OLED SSD1306 ESP32 Configuration"
+               visible if IDF_TARGET_ESP32
+               config OLED_RESET_OUTPUT_PIN
+                   int "Reset GPIO pin of OLED"
+                   default 23
+                   help
+                       Reset GPIO pin of OLED, this pin control screen
+
+               config OLED_SCL_PIN
+                   int "SCL GPIO pin of OLED"
+                   default 32
+                   help
+                       SCL GPIO pin of OLED, this pin control serial clock input
+
+               config OLED_SDA_PIN
+                   int "SDA GPIO pin of OLED"
+                   default 33
+                   help
+                       SDA GPIO pin of OLED, this pin control Serial data input
+            endmenu
+
         endmenu
 
     endmenu
