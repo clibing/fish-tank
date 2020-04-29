@@ -148,7 +148,7 @@ void after_network_connect(int type, int status) {
  */
 void app_main(void) {
     ESP_LOGD(FISH_TANK_TAG, "nvs init...");
-    iot_nvs_init(after_nvs_init_event);
+    common_nvs_init(after_nvs_init_event);
     // Check post startup events
 
     gpio_smart_config_init();
@@ -163,10 +163,10 @@ void app_main(void) {
 //    init_wifi();
 
 
-    int cnt = 0;
-    while (1) {
-        ESP_LOGD(FISH_TANK_TAG, "cnt: %d\n", cnt++);
-        vTaskDelay(1000 / portTICK_RATE_MS);
-        gpio_set_level(SMART_CONFIG_BTN, cnt % 2);
-    }
+//    int cnt = 0;
+//    while (1) {
+//        ESP_LOGD(FISH_TANK_TAG, "cnt: %d\n", cnt++);
+//        vTaskDelay(1000 / portTICK_RATE_MS);
+//        gpio_set_level(SMART_CONFIG_BTN, cnt % 2);
+//    }
 }
