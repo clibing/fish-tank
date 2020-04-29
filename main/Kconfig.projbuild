@@ -80,13 +80,13 @@ menu "Fish Tank"
 
         config WIFI_SSID
             string "Access to ssid of WiFi"
-            default "wifi"
+            default "Redmi"
             help
                 Default access to SSID of WiFi.
 
         config WIFI_PWD
             string "Access to password of WiFi"
-            default "111111"
+            default "123456987"
             help
                 Default access to password of WiFi.
     endmenu

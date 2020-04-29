@@ -11,7 +11,9 @@
  */
 typedef void(*wifi_callback_t)(int type, int status);
 
-void initialise_wifi(wifi_callback_t callback, int is_smart_config);
+void initialise_wifi(wifi_callback_t callback);
+
+void start_smart_config(wifi_callback_t callback);
 
 #endif
 

@@ -54,8 +54,7 @@ static esp_err_t event_handler(void *ctx, system_event_t *event) {
             }
             esp_wifi_connect();
             xEventGroupClearBits(wifi_event_group, CONNECTED_BIT);
-            if (retry > 3) {
-                esp_wifi_stop();
+            if (retry > 3 && retry % 3 == 0) {
                 current_callback(type, -1);
             }
             break;
@@ -131,25 +130,38 @@ void smartconfig_task(void *parm) {
 }
 
 
-void initialise_wifi(wifi_callback_t callback, int is_smart_config) {
+void initialise_wifi(wifi_callback_t callback) {
     tcpip_adapter_init();
     wifi_event_group = xEventGroupCreate();
     ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     // storage config to ram , will used when restart
-    ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
+#if CONFIG_WiFi_DEFAULT_ENABLE
+    wifi_config_t wifi_config = {
+        .sta = {
+            .ssid = CONFIG_WIFI_SSID,
+            .password = CONFIG_WIFI_PWD
+        },
+    };
+    ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config) );
+#endif
+
+    ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    type = is_smart_config;
+    type = 1;
     current_callback = callback;
-    if (is_smart_config != 1) {
-        esp_wifi_connect();
-        return;
-    }
+    esp_wifi_connect();
+}
 
+void start_smart_config(wifi_callback_t callback) {
+    ESP_ERROR_CHECK(esp_wifi_start());
+    type = 2;
+    current_callback = callback;
     // start smart config network
     xTaskCreate(smartconfig_task, "smartconfig_task", 4096, NULL, 3, NULL);
 }

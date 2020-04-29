@@ -28,9 +28,16 @@
 */
 
 //I2C
-#define I2C_OLED_MASTER_SCL_IO          CONFIG_OLED_SDA_PIN               /*!< gpio number for I2C master clock */
-#define I2C_OLED_MASTER_SDA_IO          CONFIG_OLED_SDA_PIN               /*!< gpio number for I2C master data  */
-#define I2C_OLED_MASTER_NUM             I2C_NUM_1        /*!< I2C port number for master dev */
+
+#define I2C_OLED_SCL_IO                 CONFIG_OLED_SDA_PIN               /*!< gpio number for I2C master clock */
+#define I2C_OLED_SDA_IO                 CONFIG_OLED_SDA_PIN               /*!< gpio number for I2C master data  */
+
+#if CONFIG_IDF_TARGET_ESP32
+    #define I2C_OLED_NUM                    I2C_NUM_1        /*!< I2C port number for master dev */
+#elif
+    #define I2C_OLED_NUM                    HSPI_HOST        /*!< I2C port number for master dev */
+#endif
+
 #define WRITE_BIT                       I2C_MASTER_WRITE /*!< I2C master write */
 #define READ_BIT                        I2C_MASTER_READ  /*!< I2C master read */
 #define ACK_CHECK_EN                    0x1              /*!< I2C master will check ack from slave*/
@@ -42,7 +49,7 @@
 #define OLED_WRITE_ADDR                 0x78
 #define SSD1306_WIDTH                   128
 #define SSD1306_HEIGHT                  64
-#define WRITE_CMD      			        0X00
+#define WRITE_CMD      			        0X 0
 #define WRITE_DATA     			        0X40
 
 #define TURN_OFF_CMD                    0xAE                     //--turn off oled panel
@@ -87,9 +94,8 @@ typedef struct {
 	uint8_t Initialized;
 } SSD1306_t;
 
-void i2c_inti(void);
+void i2c_init(void);
 void oled_init(void);
-void oled_init_jlx(void);
 void oled_clear(void);
 void oled_all_on(void);
 void oled_set_pos(uint8_t x,uint8_t y);

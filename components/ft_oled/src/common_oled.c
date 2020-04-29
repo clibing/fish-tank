@@ -56,13 +56,17 @@ void i2c_init(void)
     //注释参考sht30之i2c教程
     i2c_config_t conf;
     conf.mode = I2C_MODE_MASTER;
-    conf.sda_io_num = I2C_OLED_MASTER_SDA_IO;
+    conf.sda_io_num = I2C_OLED_SDA_IO;
     conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.scl_io_num = I2C_OLED_MASTER_SCL_IO;
+    conf.scl_io_num = I2C_OLED_SCL_IO;
     conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
+
+#if CONFIG_IDF_TARGET_ESP32
     conf.master.clk_speed = 400000;
-    i2c_param_config(I2C_OLED_MASTER_NUM, &conf);
-    i2c_driver_install(I2C_OLED_MASTER_NUM, conf.mode, 0, 0, 0);
+#endif
+
+    i2c_param_config(I2C_OLED_NUM, &conf);
+    i2c_driver_install(I2C_OLED_NUM, conf.mode, 0, 0, 0);
 }
 
 /** 
@@ -170,39 +174,7 @@ void hw_gpio_output_init()
     gpio_config(&io_conf);
 }
 
-void oled_init_jlx(void)
-{
-    hw_gpio_output_init();
-    //i2c初始化
-    i2c_init();
-
-    gpio_set_level(RSET_OUTPUT_IO, 1);
-    vTaskDelay( 5 / portTICK_PERIOD_MS);
-    gpio_set_level(RSET_OUTPUT_IO, 0);
-    vTaskDelay( 5 / portTICK_PERIOD_MS);
-    gpio_set_level(RSET_OUTPUT_IO, 1);
-
-    oled_write_cmd(TURN_OFF_CMD); /*关显示*/
-
-    oled_write_cmd(0xE2); /*软复位*/
-    oled_write_cmd(0xE2); /*软复位*/
-    oled_write_cmd(0x2C); /*升压步聚 1*/
-    oled_write_cmd(0x2E); /*升压步聚 2*/
-    oled_write_cmd(0x2F); /*升压步聚 3*/
-    oled_write_cmd(0x24); /*粗调对比度，可设置范围 0x20～0x27*/
-    oled_write_cmd(0x81); /*微调对比度*/
-    oled_write_cmd(0x2A); /*0x1a,微调对比度的值，可设置范围 0x00～0x3f*/
-    oled_write_cmd(0xA2); /*1/9 偏压比（bias）*/
-    oled_write_cmd(0xC8); /*行扫描顺序：从上到下*/
-    oled_write_cmd(0xA0); /*列扫描顺序：从左到右*/
-    oled_write_cmd(0x40); /*起始行：第一行开始*/
-    oled_write_cmd(0xAF); /*开显示*/
-
-    //清屏
-    oled_clear();
-}
-
-/** 
+/**
  * 初始化 oled
  * @param[in]   NULL
  * @retval      
@@ -272,8 +244,8 @@ void oled_init(void)
  * @retval      
  *              NULL                           
  * @par         修改日志 
- *               Ver0.0.1:
-                     XinC_Guo, 2018/07/18, 初始化版本\n 
+ *              Ver0.0.1:
+                XinC_Guo, 2018/07/18, 初始化版本\n
  */
 void oled_update_screen(void)
 {
