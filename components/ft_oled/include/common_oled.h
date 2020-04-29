@@ -49,7 +49,7 @@
 #define OLED_WRITE_ADDR                 0x78
 #define SSD1306_WIDTH                   128
 #define SSD1306_HEIGHT                  64
-#define WRITE_CMD      			        0X 0
+#define WRITE_CMD      			        0X00
 #define WRITE_DATA     			        0X40
 
 #define TURN_OFF_CMD                    0xAE                     //--turn off oled panel

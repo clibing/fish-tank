@@ -1,11 +1,6 @@
 /*
-* @file         oled.c
-* @brief        ESP32操作OLED-I2C
+* @file         oled.c 
 * @details      用户应用程序的入口文件,用户所有要实现的功能逻辑均是从该文件开始或者处理
-* @author       红旭团队
-* @par Copyright (c):
-*               红旭无线开发团队，QQ群：671139854
-*/
 /*
 =============
 头文件包含
@@ -42,14 +37,6 @@ static bool is_show_str = 0;
 
 /** 
  * oled_i2c 初始化
- * @param[in]   NULL
- * @retval      
- *              NULL                              
- * @par         修改日志 
- *               Ver0.0.1:
-                     XinC_Guo, 2018/07/18, 初始化版本\n 
- *               Ver0.0.2:
-                     hx-zsj, 2018/08/07, 统一编程风格\n 
  */
 void i2c_init(void)
 {
@@ -72,13 +59,7 @@ void i2c_init(void)
 /** 
  * 向oled写命令
  * @param[in]   command
- * @retval      
- *              - ESP_OK                              
- * @par         修改日志 
- *               Ver0.0.1:
-                     XinC_Guo, 2018/07/18, 初始化版本\n 
- *               Ver0.0.2:
-                     hx-zsj, 2018/08/07, 统一编程风格\n 
+ * @retval      ESP_OK                              
  */
 
 int oled_write_cmd(uint8_t command)
@@ -103,11 +84,7 @@ int oled_write_cmd(uint8_t command)
 /** 
  * 向oled写数据
  * @param[in]   data
- * @retval      
- *              - ESP_OK                              
- * @par         修改日志 
- *               Ver0.0.1:
-                     XinC_Guo, 2018/07/18, 初始化版本\n 
+ * @retval      ESP_OK                              
  */
 int oled_write_data(uint8_t data)
 {
@@ -131,11 +108,7 @@ int oled_write_data(uint8_t data)
  * 向oled写长数据
  * @param[in]   data   要写入的数据
  * @param[in]   len     数据长度
- * @retval      
- *              - ESP_OK                              
- * @par         修改日志 
- *               Ver0.0.1:
-                     XinC_Guo, 2018/07/18, 初始化版本\n 
+ * @retval      - ESP_OK                              
  */
 int oled_write_long_data(uint8_t *data, uint16_t len)
 {
@@ -156,32 +129,10 @@ int oled_write_long_data(uint8_t *data, uint16_t len)
     return ret;
 }
 
-void hw_gpio_output_init()
-{
-    //定义一个gpio_config类型的结构体，下面的都算对其进行的配置
-    gpio_config_t io_conf;
-    //禁用中断
-    io_conf.intr_type = GPIO_PIN_INTR_DISABLE;
-    //设置为输出模式
-    io_conf.mode = GPIO_MODE_OUTPUT;
-    //你想设置的引脚
-    io_conf.pin_bit_mask = RSET_OUTPUT_PIN_SEL;
-    //关闭下拉模式
-    io_conf.pull_down_en = 0;
-    //禁用牵引模式
-    io_conf.pull_up_en = 0;
-    //配置GPIO与给定的设置。
-    gpio_config(&io_conf);
-}
-
 /**
  * 初始化 oled
  * @param[in]   NULL
- * @retval      
- *              NULL                            
- * @par         修改日志 
- *               Ver0.0.1:
-                     XinC_Guo, 2018/07/18, 初始化版本\n 
+ * @retval      NULL                            
  */
 void oled_init(void)
 {
@@ -241,11 +192,6 @@ void oled_init(void)
 /** 
  * 将显存内容刷新到oled显示区
  * @param[in]   NULL
- * @retval      
- *              NULL                           
- * @par         修改日志 
- *              Ver0.0.1:
-                XinC_Guo, 2018/07/18, 初始化版本\n
  */
 void oled_update_screen(void)
 {
@@ -263,11 +209,7 @@ void oled_update_screen(void)
 /** 
  * 清屏
  * @param[in]   NULL
- * @retval      
- *              NULL                            
- * @par         修改日志 
- *               Ver0.0.1:
-                     XinC_Guo, 2018/07/18, 初始化版本\n 
+ * @retval      NULL                            
  */
 void oled_clear(void)
 {
@@ -278,11 +220,7 @@ void oled_clear(void)
 /** 
  * 填屏
  * @param[in]   NULL
- * @retval      
- *              NULL                            
- * @par         修改日志 
- *               Ver0.0.1:
-                     XinC_Guo, 2018/07/18, 初始化版本\n 
+ * @retval      NULL                            
  */
 void oled_all_on(void)
 {
@@ -294,11 +232,7 @@ void oled_all_on(void)
  * 移动坐标
  * @param[in]   x   显示区坐标 x
  * @param[in]   y   显示去坐标 y
- * @retval      
- *              其它                         
- * @par         修改日志 
- *               Ver0.0.1:
-                     XinC_Guo, 2018/07/18, 初始化版本\n 
+ * @retval      其它                         
  */
 void oled_gotoXY(uint16_t x, uint16_t y)
 {
@@ -310,11 +244,7 @@ void oled_gotoXY(uint16_t x, uint16_t y)
  * @param[in]   x   坐标
  * @param[in]   y   坐标
  * @param[in]   color   色值0/1
- * @retval      
- *              - ESP_OK                              
- * @par         修改日志 
- *               Ver0.0.1:
-                     XinC_Guo, 2018/07/18, 初始化版本\n 
+ * @retval      - ESP_OK                              
  */
 void oled_drawpixel(uint16_t x, uint16_t y, SSD1306_COLOR_t color)
 {
@@ -340,11 +270,7 @@ void oled_drawpixel(uint16_t x, uint16_t y, SSD1306_COLOR_t color)
  * @param[in]   ch   要显示的字符
  * @param[in]   font 显示的字形
  * @param[in]   color 颜色  1显示 0不显示
- * @retval      
- *              其它                        
- * @par         修改日志 
- *               Ver0.0.1:
-                     XinC_Guo, 2018/07/18, 初始化版本\n 
+ * @retval      其它                        
  */
 char oled_show_char(uint16_t x, uint16_t y, char ch, FontDef_t *Font, SSD1306_COLOR_t color)
 {
@@ -387,11 +313,7 @@ char oled_show_char(uint16_t x, uint16_t y, char ch, FontDef_t *Font, SSD1306_CO
  * @param[in]   str   要显示的字符串
  * @param[in]   font 显示的字形
  * @param[in]   color 颜色  1显示 0不显示
- * @retval      
- *              其它                        
- * @par         修改日志 
- *               Ver0.0.1:
-                     XinC_Guo, 2018/07/18, 初始化版本\n 
+ * @retval      其它                        
  */
 char oled_show_str(uint16_t x, uint16_t y, char *str, FontDef_t *Font, SSD1306_COLOR_t color)
 {
@@ -412,10 +334,6 @@ char oled_show_str(uint16_t x, uint16_t y, char *str, FontDef_t *Font, SSD1306_C
 }
 
 const uint16_t tai1[32] = {
-    // 0x00, 0x04, 0x04, 0x04, 0x84, 0x44, 0x34, 0x4F, 0x94, 0x24, 0x44, 0x84, 0x84, 0x04, 0x00, 0x00,
-    // 0x00, 0x60, 0x39, 0x01, 0x00, 0x3C, 0x40, 0x42, 0x4C, 0x40, 0x40, 0x70, 0x04, 0x09, 0x31, 0x00
-    // 0x60,0x02,0x1C,0x0A,0x10,0x12,0x10,0x12,0x10,0x02,0xFF,0x7F,0x10,0x02,0x10,0x12,
-    // 0x70,0x14,0x1C,0x0C,0x13,0x04,0x10,0x0A,0x90,0x49,0x10,0x50,0x14,0x60,0x08,0x40
     0x06,0x40,0x38,0x50,0x08,0x48,0x08,0x48,0x08,0x40,0xFF,0xFE,0x08,0x40,0x08,0x48,
     0x0E,0x28,0x38,0x30,0xC8,0x20,0x08,0x50,0x09,0x92,0x08,0x0A,0x28,0x06,0x10,0x02,/*"��",0*/
 
