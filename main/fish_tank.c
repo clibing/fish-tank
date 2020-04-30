@@ -47,7 +47,7 @@
 
 extern uint32_t esp_get_time(void);
 
-void after_network_connect(int type, int status);
+void after_network_connect(int type, int status, char *ip);
 
 static const char *FISH_TANK_TAG = "fish_tank";
 
@@ -120,13 +120,17 @@ void after_nvs_init_event() {
     ESP_LOGD(FISH_TANK_TAG, "after nvs init event");
 }
 
-void after_network_connect(int type, int status) {
-    ESP_LOGD(FISH_TANK_TAG, "after network type: %d, the status: %d", type, status);
+void after_network_connect(int type, int status, char *ip) {
+    ESP_LOGD(FISH_TANK_TAG, "after network type: %d, the status: %d, current ip: %s", type, status, ip);
     if (status != 1) {
-//        oled_show_str(1, 1, "Network error", &Font_7x10, 1);
+        oled_show_str(1, 30, "Network error", &Font_7x10, 0);
         return;
     } else {
-//        oled_show_str(1, 1, "Network success", &Font_7x10, 1);
+        oled_show_str(1, 30, "Network success", &Font_7x10, 0);
+        if (ip != NULL){
+            oled_show_str(1, 1, ":", &Font_7x10, 0);
+            oled_show_str(7, 1, ip, &Font_7x10, 0);
+        }
     }
     // mqtt connection...
 }
@@ -140,16 +144,15 @@ void app_main(void) {
     ESP_LOGD(FISH_TANK_TAG, "nvs init...");
     common_nvs_init(after_nvs_init_event);
     // Check post startup events
-
-    gpio_smart_config_init();
-    ESP_LOGD(FISH_TANK_TAG, "gpio btn init... %d\n", SMART_CONFIG_BTN);
-
-    // check pin btn smartconfig network press
-//    initialise_wifi(after_network_connect );
-
     oled_init();
     oled_all_on();
-    oled_show_str(1, 1, "Network success", &Font_7x10, 1);
+    oled_show_str(1, 30, "Loading...", &Font_7x10, 0);
+    gpio_smart_config_init();
+    ESP_LOGD(FISH_TANK_TAG, "gpio btn init... %d\n", SMART_CONFIG_BTN);
+    // check pin btn smartconfig network press
+    oled_show_str(1, 30, "Networking...", &Font_7x10, 0);
+    initialise_wifi(after_network_connect );
+
 //    int cnt = 0;
 //    while (1) {
 //        ESP_LOGD(FISH_TANK_TAG, "cnt: %d\n", cnt++);

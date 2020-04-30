@@ -165,7 +165,8 @@ void oled_init(void) {
 
     //0xA6: 表示正常显示（在面板上1表示点亮，0表示不亮）
     //0xA7: 表示逆显示（在面板上0表示点亮，1表示不亮）
-    oled_write_cmd(0XA6);
+    // oled_write_cmd(0XA6);
+    oled_write_cmd(0XA7);
 
     oled_write_cmd(0XA8); //设置多路复用率（1-64）
     oled_write_cmd(0X3F); //（0x01-0x3f）(默认为3f)

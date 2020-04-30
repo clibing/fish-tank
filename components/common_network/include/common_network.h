@@ -9,7 +9,7 @@
  *   1: ok
  *   -1: failed
  */
-typedef void(*wifi_callback_t)(int type, int status);
+typedef void(*wifi_callback_t)(int type, int status, char *ip);
 
 void initialise_wifi(wifi_callback_t callback);
 

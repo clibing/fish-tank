@@ -42,7 +42,7 @@ static esp_err_t event_handler(void *ctx, system_event_t *event) {
             xEventGroupSetBits(wifi_event_group, CONNECTED_BIT);
             // normal connection wifi
             if (type == 1) {
-                current_callback(type, 1);
+                current_callback(type, 1, ip4addr_ntoa(&event->event_info.got_ip.ip_info.ip));
             }
             break;
         case SYSTEM_EVENT_STA_DISCONNECTED:
@@ -55,7 +55,7 @@ static esp_err_t event_handler(void *ctx, system_event_t *event) {
             esp_wifi_connect();
             xEventGroupClearBits(wifi_event_group, CONNECTED_BIT);
             if (retry > 3 && retry % 3 == 0) {
-                current_callback(type, -1);
+                current_callback(type, -1, NULL);
             }
             break;
         default:
@@ -122,7 +122,7 @@ void smartconfig_task(void *parm) {
             ESP_LOGI(COMMON_NETWORK, "smartconfig over");
             esp_smartconfig_stop();
             if (type == 2) {
-                current_callback(type, 1);
+                current_callback(type, 1, NULL);
             }
             vTaskDelete(NULL);
         }
