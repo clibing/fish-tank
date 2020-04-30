@@ -99,7 +99,7 @@ int  oled_write_cmd(uint8_t command);
 int  oled_write_data(uint8_t data);
 void clean_oled_buff(void);
 void oled_update_screen(void);
-int  oled_write_lang_data(uint8_t *data,uint16_t len);
+int  oled_write_lang_data(uint8_t *data,uint16_t len); // no
 void oled_drawpixel(uint16_t x, uint16_t y, SSD1306_COLOR_t color);
 void oled_gotoXY(uint16_t x, uint16_t y) ;
 char oled_show_char(uint16_t x, uint16_t y,char ch, FontDef_t* font, SSD1306_COLOR_t color)  ;
