@@ -117,11 +117,6 @@ menu "Fish Tank"
                     help
                         SDA GPIO pin of OLED, this pin control Serial data input
 
-                config OLED_RESET_OUTPUT_PIN
-                    int "Reset GPIO pin of OLED"
-                    default 15
-                    help
-                        Reset GPIO pin of OLED, this pin control screen
             endmenu
 
             menu "OLED SSD1306 ESP32 Configuration"

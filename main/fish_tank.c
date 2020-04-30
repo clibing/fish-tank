@@ -34,6 +34,7 @@
 
 #include "common_nvs.h"
 #include "common_network.h"
+#include "common_oled.h"
 
 
 #define SMART_CONFIG_BTN    CONFIG_SMART_CONFIG_BTN_PIN
@@ -144,8 +145,11 @@ void app_main(void) {
     ESP_LOGD(FISH_TANK_TAG, "gpio btn init... %d\n", SMART_CONFIG_BTN);
 
     // check pin btn smartconfig network press
-    initialise_wifi(after_network_connect );
+//    initialise_wifi(after_network_connect );
 
+    oled_init();
+    oled_all_on();
+    oled_show_str(1, 1, "Network success", &Font_7x10, 1);
 //    int cnt = 0;
 //    while (1) {
 //        ESP_LOGD(FISH_TANK_TAG, "cnt: %d\n", cnt++);
