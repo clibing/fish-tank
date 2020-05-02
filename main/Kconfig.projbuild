@@ -49,7 +49,7 @@ menu "Fish Tank"
 
             config LED_PIN
                 int "LED control pin"
-                default 16
+                default 5
                 help
                     LED control pin
         endmenu
