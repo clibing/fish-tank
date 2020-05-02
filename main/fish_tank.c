@@ -172,9 +172,13 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
             ESP_LOGI(FISH_TANK_TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
             time(&curtime);
             char data[100] = {'\0'};
-            sprintf(data, "{\"type\":\"1\", \"message\": \"test\", \"nonce\": \"%s\"}", ctime(&curtime));
+            char value[25] = {'\0'};
+            strcpy(value, ctime(&curtime));
+            value[24] = '\0';
+            sprintf(data, "{\"type\":\"1\",\"message\":\"test\",\"nonce\":\"%s\"}", value);
             msg_id = esp_mqtt_client_publish(client, SELF_TOPIC_NAME, data, 0, 0, 0);
             ESP_LOGI(FISH_TANK_TAG, "sent publish successful, msg_id=%d", msg_id);
+            bzero(data, sizeof(data));
             break;
         case MQTT_EVENT_UNSUBSCRIBED:
             ESP_LOGI(FISH_TANK_TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
