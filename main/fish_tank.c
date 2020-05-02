@@ -47,6 +47,11 @@
 #define LED_PIN             CONFIG_LED_PIN
 #define GPIO_FT_OUT_PIN_SSL    ((1ULL<<WATER_PUMP_PIN) | (1ULL<<O2_PUMP_PIN) | (1ULL<<LED_PIN))
 
+#define CLIENT_ID           CONFIG_CLIENT_ID
+#define MQTT_USER_NAME      CONFIG_MQTT_USER_NAME
+#define SELF_TOPIC_NAME     "/fish-tank/"CONFIG_MQTT_USER_NAME
+#define SYS_TOPIC_NAME      "/fish-tank/sys"
+
 extern uint32_t esp_get_time(void);
 
 void after_network_connect(int type, int status, char *ip);
@@ -56,6 +61,8 @@ static const char *FISH_TANK_TAG = "fish_tank";
 static xQueueHandle gpio_evt_queue = NULL;
 
 static int mqtt_running = 0;
+static time_t curtime;
+ 
 
 static void initialize_sntp(void)
 {
@@ -145,25 +152,28 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 {
     esp_mqtt_client_handle_t client = event->client;
     int msg_id;
+    /**
+     * qos0: 最多分发一次
+     * qos1: 至少分发一次
+     * qos2: 仅分发一次, 这是最高等级的服务质量
+     */
     switch (event->event_id) {
         case MQTT_EVENT_CONNECTED:
             ESP_LOGI(FISH_TANK_TAG, "MQTT_EVENT_CONNECTED");
-            msg_id = esp_mqtt_client_subscribe(client, "/topic/qos0", 0);
-            ESP_LOGI(FISH_TANK_TAG, "sent subscribe successful, msg_id=%d", msg_id);
-
-            msg_id = esp_mqtt_client_subscribe(client, "/topic/qos1", 1);
-            ESP_LOGI(FISH_TANK_TAG, "sent subscribe successful, msg_id=%d", msg_id);
-
-            msg_id = esp_mqtt_client_unsubscribe(client, "/topic/qos1");
-            ESP_LOGI(FISH_TANK_TAG, "sent unsubscribe successful, msg_id=%d", msg_id);
+            msg_id = esp_mqtt_client_subscribe(client, SYS_TOPIC_NAME, 1);
+            ESP_LOGI(FISH_TANK_TAG, "sys subscribe successful, msg_id=%d", msg_id);
+            msg_id = esp_mqtt_client_subscribe(client, SELF_TOPIC_NAME, 1);
+            ESP_LOGI(FISH_TANK_TAG, "self subscribe successful, msg_id=%d", msg_id);
             break;
         case MQTT_EVENT_DISCONNECTED:
             ESP_LOGI(FISH_TANK_TAG, "MQTT_EVENT_DISCONNECTED");
             break;
-
         case MQTT_EVENT_SUBSCRIBED:
             ESP_LOGI(FISH_TANK_TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-            msg_id = esp_mqtt_client_publish(client, "/topic/qos0", "data", 0, 0, 0);
+            time(&curtime);
+            char data[100] = {'\0'};
+            sprintf(data, "{\"type\":\"1\", \"message\": \"test\", \"nonce\": \"%s\"}", ctime(&curtime));
+            msg_id = esp_mqtt_client_publish(client, SELF_TOPIC_NAME, data, 0, 0, 0);
             ESP_LOGI(FISH_TANK_TAG, "sent publish successful, msg_id=%d", msg_id);
             break;
         case MQTT_EVENT_UNSUBSCRIBED:
@@ -187,6 +197,8 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 static void mqtt_app_start(void)
 {
     const esp_mqtt_client_config_t mqtt_cfg = {
+            .client_id = "FishTank",
+            .username = "FishTank",
             .uri = CONFIG_BROKER_URI,
             .event_handle = mqtt_event_handler,
             .cert_pem = (const char *)fs_ca_pem_start,
@@ -209,16 +221,21 @@ void after_network_connect(int type, int status, char *ip) {
     } else {
         oled_show_str(1, 30, "Network success", &Font_7x10, 0);
         if (ip != NULL){
-            oled_show_str(1, 1, ":", &Font_7x10, 0);
-            oled_show_str(7, 1, ip, &Font_7x10, 0);
+            oled_show_str(1, 1, ip, &Font_7x10, 0);
         }
 
+        // mqtt connection...
         if(mqtt_running == 0){
+            ESP_LOGD(FISH_TANK_TAG, "sntp init...");
+            initialize_sntp();
+
+            setenv("TZ", "CST-8", 1);
+            tzset();
+
             mqtt_app_start();
             mqtt_running = 1;
         }
     }
-    // mqtt connection...
 }
 
 /**
@@ -241,9 +258,6 @@ void app_main(void) {
     // check pin btn smartconfig network press
     oled_show_str(1, 30, "Networking...", &Font_7x10, 0);
     initialise_wifi(after_network_connect);
-
-    ESP_LOGD(FISH_TANK_TAG, "sntp init...");
-    initialize_sntp();
 
 
 //    int cnt = 0;
