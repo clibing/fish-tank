@@ -73,6 +73,19 @@ menu "Fish Tank"
             default "mqtts://mqtt.clibing.com:8883"
             help
                 URL of an mqtt broker which this example connects to.
+
+        config CLIENT_ID 
+            string "Mqtt Client Id"
+            default "FishTank"
+            help
+                Client ID to access mqtt
+
+        config MQTT_USER_NAME
+            string "Mqtt user name"
+            default "FishTank"
+            help
+                User name to access mqtt
+
     endmenu
 
     menu "WiFi Default Configuration"
