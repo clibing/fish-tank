@@ -76,13 +76,13 @@ menu "Fish Tank"
 
         config CLIENT_ID 
             string "Mqtt Client Id"
-            default "FishTank"
+            default "ft-01"
             help
                 Client ID to access mqtt
 
         config MQTT_USER_NAME
             string "Mqtt user name"
-            default "FishTank"
+            default "ft-01"
             help
                 User name to access mqtt
 
