@@ -94,10 +94,20 @@ static void gpio_task(void *arg) {
             lift_key = pdFALSE;
 
             if (backup_time > 1000000) {
-                ESP_LOGI("key", "LONG. remove note start smart config\n");
+                ESP_LOGD("key", "LONG. remove note start smart config");
                 start_smart_config(after_network_connect);
+            } else if (backup_time > 50) {
+                ESP_LOGD("key", "Short 500 %d", backup_time);
+                int value = gpio_get_level(LED_PIN);
+                if (value == 0){
+                    gpio_set_level(LED_PIN, 1);
+                    ESP_LOGD("key", "pin %d level: 1", LED_PIN);
+                }else{
+                    gpio_set_level(LED_PIN, 0);
+                    ESP_LOGD("key", "pin %d level: 0", LED_PIN);
+                }
             } else {
-                ESP_LOGI("key", "SHORT.\n");
+                ESP_LOGI("key", "SHORT. < 50ms");
             }
         }
     }
@@ -135,7 +145,6 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 {
     esp_mqtt_client_handle_t client = event->client;
     int msg_id;
-    // your_context_t *context = event->context;
     switch (event->event_id) {
         case MQTT_EVENT_CONNECTED:
             ESP_LOGI(FISH_TANK_TAG, "MQTT_EVENT_CONNECTED");
@@ -183,7 +192,6 @@ static void mqtt_app_start(void)
             .cert_pem = (const char *)fs_ca_pem_start,
     };
 
-    ESP_LOGI(FISH_TANK_TAG, "root ca value: %s", fs_ca_pem_start);
     ESP_LOGI(FISH_TANK_TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
     esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
     esp_mqtt_client_start(client);
