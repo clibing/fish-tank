@@ -138,6 +138,9 @@ void initialise_wifi(wifi_callback_t callback) {
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     // storage config to ram , will used when restart
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+    ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_FLASH));
+
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 
 #if CONFIG_WiFi_DEFAULT_ENABLE
     wifi_config_t wifi_config = {
@@ -149,8 +152,6 @@ void initialise_wifi(wifi_callback_t callback) {
     ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config) );
 #endif
 
-    ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_start());
 
     type = 1;

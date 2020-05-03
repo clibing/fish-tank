@@ -17,6 +17,7 @@ static const char *NVS_TAG = "common_nvs";
 
 void common_nvs_init(nvs_callback_t callback)
 {
+    //Initialize NV    
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES)
     {

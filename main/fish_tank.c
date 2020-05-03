@@ -111,9 +111,11 @@ static void gpio_task(void *arg) {
                 if (value == 0){
                     gpio_set_level(LED_PIN, 1);
                     ESP_LOGD("key", "pin %d level: 1", LED_PIN);
+                    oled_show_str(1, 41, "LED: ON ", &Font_7x10, 0);
                 }else{
                     gpio_set_level(LED_PIN, 0);
                     ESP_LOGD("key", "pin %d level: 0", LED_PIN);
+                    oled_show_str(1, 41, "LED: OFF", &Font_7x10, 0);
                 }
             } else {
                 ESP_LOGI("key", "SHORT. < 50ms");
@@ -172,15 +174,15 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
             break;
         case MQTT_EVENT_SUBSCRIBED:
             ESP_LOGI(FISH_TANK_TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-            time(&curtime);
-            char data[100] = {'\0'};
-            char value[25] = {'\0'};
-            strcpy(value, ctime(&curtime));
-            value[24] = '\0';
-            sprintf(data, "{\"type\":0,\"action\":1,\"message\":\"Open Water Dump\",\"nonce\":\"%s\"}", value);
-            msg_id = esp_mqtt_client_publish(client, SELF_TOPIC_NAME, data, 0, 0, 0);
-            ESP_LOGI(FISH_TANK_TAG, "sent publish successful, msg_id=%d", msg_id);
-            bzero(data, sizeof(data));
+            // time(&curtime);
+            // char data[100] = {'\0'};
+            // char value[25] = {'\0'};
+            // strcpy(value, ctime(&curtime));
+            // value[24] = '\0';
+            // sprintf(data, "{\"type\":0,\"action\":1,\"message\":\"Open Water Dump\",\"nonce\":\"%s\"}", value);
+            // msg_id = esp_mqtt_client_publish(client, SELF_TOPIC_NAME, data, 0, 0, 0);
+            // ESP_LOGI(FISH_TANK_TAG, "sent publish successful, msg_id=%d", msg_id);
+            // bzero(data, sizeof(data));
             break;
         case MQTT_EVENT_UNSUBSCRIBED:
             ESP_LOGI(FISH_TANK_TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
@@ -199,36 +201,37 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
             char receive_payload[plen + 1];
             sprintf(receive_payload, "%.*s", event->data_len, event->data);
 
-            ESP_LOGD(FISH_TANK_TAG, "Recived topic: %s, the payload: [%s]", receive_topic, receive_payload);
+            ESP_LOGI(FISH_TANK_TAG, "Recived topic: %s, the payload: [%s]", receive_topic, receive_payload);
 
             // handler message
-            cJSON *json, *json_type, *json_action, *json_message;
+            // cJSON *json, *json_type, *json_action, *json_message;
+            cJSON *json, *json_type, *json_action;
 
+            ESP_LOGI(FISH_TANK_TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
             json = cJSON_Parse(receive_payload);
+            int type = -1; 
+            int action = -1; 
             if(NULL != json){
                 json_type = cJSON_GetObjectItem(json, "type");
-                int type = -1; 
                 if(json_type->type == cJSON_Number){
                     type = json_type->valueint;
                 }
 
-                ESP_LOGD(FISH_TANK_TAG, "Recived payload item type: %d", type);
+                ESP_LOGI(FISH_TANK_TAG, "Recived payload item type: %d", type);
 
-                int action = -1; 
                 json_action = cJSON_GetObjectItem(json, "action");
                 if(json_action->type == cJSON_Number){
                     action = json_action->valueint;
                 }
-                ESP_LOGD(FISH_TANK_TAG, "Recived payload item action: %d", action);
+                ESP_LOGI(FISH_TANK_TAG, "Recived payload item action: %d", action);
 
-                char message[50];
-                json_message = cJSON_GetObjectItem(json, "message");
-                if(json_message->type == cJSON_String){
-                    sprintf(message, "%s", json_message->valuestring);
-                }
-                ESP_LOGD(FISH_TANK_TAG, "Recived payload item message: %s", message);
-
-                ESP_LOGD(FISH_TANK_TAG, "Recived payload item nonce skip");
+                // char message[50];
+                // json_message = cJSON_GetObjectItem(json, "message");
+                // if(json_message->type == cJSON_String){
+                //     sprintf(message, "%s", json_message->valuestring);
+                // }
+                // ESP_LOGD(FISH_TANK_TAG, "Recived payload item message: %s", message);
+                // ESP_LOGD(FISH_TANK_TAG, "Recived payload item nonce skip");
 
                 // led
                 if (type == 1){
@@ -259,6 +262,28 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
             cJSON_Delete(json);
             bzero(receive_topic, sizeof(receive_topic));
             bzero(receive_payload, sizeof(receive_payload));
+
+            ESP_LOGI(FISH_TANK_TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
+            if (type == 1){
+                if (action >= 1){
+                   oled_show_str(1, 41, "LED: ON ", &Font_7x10, 0);
+                }else{
+                   oled_show_str(1, 41, "LED: OFF", &Font_7x10, 0);
+                }
+            }else if (type == 2){ // water dump
+                if (action >= 1){
+                   oled_show_str(1, 11, "WATER PUMP: ON ", &Font_7x10, 0);
+                }else{
+                   oled_show_str(1, 11, "WATER PUMP: OFF", &Font_7x10, 0);
+                }
+            }else if (type == 3){ // O2 dump
+                if (action >= 1){
+                   oled_show_str(1, 21, "O2 PUMP: ON ", &Font_7x10, 0);
+                }else{
+                   oled_show_str(1, 21, "O2 PUMP: OFF", &Font_7x10, 0);
+                }
+            }
+
             break;
         }
         case MQTT_EVENT_ERROR:
@@ -271,8 +296,8 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 static void mqtt_app_start(void)
 {
     const esp_mqtt_client_config_t mqtt_cfg = {
-            .client_id = "FishTank",
-            .username = "FishTank",
+            .client_id = CONFIG_CLIENT_ID,
+            .username = CONFIG_MQTT_USER_NAME,
             .uri = CONFIG_BROKER_URI,
             .event_handle = mqtt_event_handler,
             .cert_pem = (const char *)fs_ca_pem_start,
@@ -295,16 +320,17 @@ void after_network_connect(int type, int status, char *ip) {
     } else {
         oled_show_str(1, 30, "Network success", &Font_7x10, 0);
         if (ip != NULL){
-            oled_show_str(1, 1, ip, &Font_7x10, 0);
+            oled_show_str(1, 1, "ip:", &Font_7x10, 0);
+            oled_show_str(22, 1, ip, &Font_7x10, 0);
         }
 
         // mqtt connection...
         if(mqtt_running == 0){
             ESP_LOGD(FISH_TANK_TAG, "sntp init...");
-            initialize_sntp();
+            // initialize_sntp();
 
-            setenv("TZ", "CST-8", 1);
-            tzset();
+            // setenv("TZ", "CST-8", 1);
+            // tzset();
 
             mqtt_app_start();
             mqtt_running = 1;
@@ -319,6 +345,7 @@ void after_network_connect(int type, int status, char *ip) {
  */
 void app_main(void) {
     ESP_LOGD(FISH_TANK_TAG, "nvs init...");
+    // nvs_flash_erase();
     common_nvs_init(after_nvs_init_event);
 
     // Check post startup events
