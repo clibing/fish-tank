@@ -31,7 +31,7 @@ menu "Fish Tank"
 
             config SMART_CONFIG_BTN_PIN
                 int "Smartconfig one key distribution network pin"
-                default 4
+                default 13
                 help
                     Pin triggering smartconfig one key distribution network key
 
@@ -49,7 +49,7 @@ menu "Fish Tank"
 
             config LED_PIN
                 int "LED control pin"
-                default 5
+                default 12
                 help
                     LED control pin
         endmenu
@@ -120,13 +120,13 @@ menu "Fish Tank"
                 visible if IDF_TARGET_ESP8266
                 config OLED_SCL_PIN
                     int "SCL GPIO pin of OLED"
-                    default 12
+                    default 5
                     help
                         SCL GPIO pin of OLED, this pin control serial clock input
 
                 config OLED_SDA_PIN
                     int "SDA GPIO pin of OLED"
-                    default 13
+                    default 4
                     help
                         SDA GPIO pin of OLED, this pin control Serial data input
 

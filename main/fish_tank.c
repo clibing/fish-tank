@@ -37,6 +37,8 @@
 #include "common_nvs.h"
 #include "common_network.h"
 #include "common_oled.h"
+#include "cJSON.h"
+#include "cJSON_Utils.h"
 
 
 #define SMART_CONFIG_BTN    CONFIG_SMART_CONFIG_BTN_PIN
@@ -175,7 +177,7 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
             char value[25] = {'\0'};
             strcpy(value, ctime(&curtime));
             value[24] = '\0';
-            sprintf(data, "{\"type\":\"1\",\"message\":\"test\",\"nonce\":\"%s\"}", value);
+            sprintf(data, "{\"type\":0,\"action\":1,\"message\":\"Open Water Dump\",\"nonce\":\"%s\"}", value);
             msg_id = esp_mqtt_client_publish(client, SELF_TOPIC_NAME, data, 0, 0, 0);
             ESP_LOGI(FISH_TANK_TAG, "sent publish successful, msg_id=%d", msg_id);
             bzero(data, sizeof(data));
@@ -186,11 +188,79 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
         case MQTT_EVENT_PUBLISHED:
             ESP_LOGI(FISH_TANK_TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
             break;
-        case MQTT_EVENT_DATA:
+        case MQTT_EVENT_DATA:{
             ESP_LOGI(FISH_TANK_TAG, "MQTT_EVENT_DATA");
-            printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
-            printf("DATA=%.*s\r\n", event->data_len, event->data);
+
+            int tlen = event->topic_len;
+            char receive_topic[tlen + 1];
+            sprintf(receive_topic, "%.*s", event->topic_len, event->topic);
+
+            int plen = event->data_len;
+            char receive_payload[plen + 1];
+            sprintf(receive_payload, "%.*s", event->data_len, event->data);
+
+            ESP_LOGD(FISH_TANK_TAG, "Recived topic: %s, the payload: [%s]", receive_topic, receive_payload);
+
+            // handler message
+            cJSON *json, *json_type, *json_action, *json_message;
+
+            json = cJSON_Parse(receive_payload);
+            if(NULL != json){
+                json_type = cJSON_GetObjectItem(json, "type");
+                int type = -1; 
+                if(json_type->type == cJSON_Number){
+                    type = json_type->valueint;
+                }
+
+                ESP_LOGD(FISH_TANK_TAG, "Recived payload item type: %d", type);
+
+                int action = -1; 
+                json_action = cJSON_GetObjectItem(json, "action");
+                if(json_action->type == cJSON_Number){
+                    action = json_action->valueint;
+                }
+                ESP_LOGD(FISH_TANK_TAG, "Recived payload item action: %d", action);
+
+                char message[50];
+                json_message = cJSON_GetObjectItem(json, "message");
+                if(json_message->type == cJSON_String){
+                    sprintf(message, "%s", json_message->valuestring);
+                }
+                ESP_LOGD(FISH_TANK_TAG, "Recived payload item message: %s", message);
+
+                ESP_LOGD(FISH_TANK_TAG, "Recived payload item nonce skip");
+
+                // led
+                if (type == 1){
+                    if (action >= 1){
+                       gpio_set_level(LED_PIN, 1); 
+                    }else{
+                       gpio_set_level(LED_PIN, 0); 
+                    }
+                }else if (type == 2){ // water dump
+                    if (action >= 1){
+                       gpio_set_level(WATER_PUMP_PIN, 1); 
+                    }else{
+                       gpio_set_level(WATER_PUMP_PIN, 0); 
+                    }
+                }else if (type == 3){ // O2 dump
+                    if (action >= 1){
+                       gpio_set_level(O2_PUMP_PIN, 1); 
+                    }else{
+                       gpio_set_level(O2_PUMP_PIN, 0); 
+                    }
+                }else{
+                    ESP_LOGI(FISH_TANK_TAG, "Recived type is zero, will skip");
+                }
+
+            }else{
+                ESP_LOGD(FISH_TANK_TAG, "Recived payload not is json struct");
+            }
+            cJSON_Delete(json);
+            bzero(receive_topic, sizeof(receive_topic));
+            bzero(receive_payload, sizeof(receive_payload));
             break;
+        }
         case MQTT_EVENT_ERROR:
             ESP_LOGI(FISH_TANK_TAG, "MQTT_EVENT_ERROR");
             break;
