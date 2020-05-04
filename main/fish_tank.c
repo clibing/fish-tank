@@ -37,8 +37,6 @@
 #include "common_nvs.h"
 #include "common_network.h"
 #include "common_oled.h"
-#include "cJSON.h"
-#include "cJSON_Utils.h"
 
 
 #define SMART_CONFIG_BTN    CONFIG_SMART_CONFIG_BTN_PIN
@@ -54,16 +52,37 @@
 #define SELF_TOPIC_NAME     "/fish-tank/"CONFIG_MQTT_USER_NAME
 #define SYS_TOPIC_NAME      "/fish-tank/sys"
 
+#define OLED_X              0
+#define OLED_SYS_X          OLED_X
+#define OLED_SYS_Y          2 
+
+#define OLED_WIFI_X         OLED_X
+#define OLED_WIFI_Y         16 
+
+#define OLED_WATER_X        OLED_X
+#define OLED_WATER_Y        26
+
+#define OLED_O2_X           OLED_X
+#define OLED_O2_Y           35      
+
+#define OLED_LED_X          OLED_X
+#define OLED_LED_Y          44        
+
+#define OLED_TIME_X         OLED_X
+#define OLED_TIME_Y         53
+
 extern uint32_t esp_get_time(void);
 
-void after_network_connect(int type, int status, char *ip);
-
 static const char *FISH_TANK_TAG = "fish_tank";
+
+// callback
+void after_network_connect(int type, int status, char *ip);
+void show_message_handle(char *message);
 
 static xQueueHandle gpio_evt_queue = NULL;
 
 static int mqtt_running = 0;
-static time_t curtime;
+// static time_t curtime;
  
 
 static void initialize_sntp(void)
@@ -104,18 +123,18 @@ static void gpio_task(void *arg) {
 
             if (backup_time > 1000000) {
                 ESP_LOGD("key", "LONG. remove note start smart config");
-                start_smart_config(after_network_connect);
+                start_smart_config(after_network_connect, show_message_handle);
             } else if (backup_time > 50) {
                 ESP_LOGD("key", "Short 500 %d", backup_time);
                 int value = gpio_get_level(LED_PIN);
                 if (value == 0){
                     gpio_set_level(LED_PIN, 1);
                     ESP_LOGD("key", "pin %d level: 1", LED_PIN);
-                    oled_show_str(1, 41, "LED: ON ", &Font_7x10, 0);
+                    oled_show_str(OLED_LED_X, OLED_LED_Y, "LED:ON ", &Font_7x10, 0);
                 }else{
                     gpio_set_level(LED_PIN, 0);
                     ESP_LOGD("key", "pin %d level: 0", LED_PIN);
-                    oled_show_str(1, 41, "LED: OFF", &Font_7x10, 0);
+                    oled_show_str(OLED_LED_X, OLED_LED_Y, "LED:OFF", &Font_7x10, 0);
                 }
             } else {
                 ESP_LOGI("key", "SHORT. < 50ms");
@@ -174,15 +193,6 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
             break;
         case MQTT_EVENT_SUBSCRIBED:
             ESP_LOGI(FISH_TANK_TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-            // time(&curtime);
-            // char data[100] = {'\0'};
-            // char value[25] = {'\0'};
-            // strcpy(value, ctime(&curtime));
-            // value[24] = '\0';
-            // sprintf(data, "{\"type\":0,\"action\":1,\"message\":\"Open Water Dump\",\"nonce\":\"%s\"}", value);
-            // msg_id = esp_mqtt_client_publish(client, SELF_TOPIC_NAME, data, 0, 0, 0);
-            // ESP_LOGI(FISH_TANK_TAG, "sent publish successful, msg_id=%d", msg_id);
-            // bzero(data, sizeof(data));
             break;
         case MQTT_EVENT_UNSUBSCRIBED:
             ESP_LOGI(FISH_TANK_TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
@@ -201,87 +211,41 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
             char receive_payload[plen + 1];
             sprintf(receive_payload, "%.*s", event->data_len, event->data);
 
+            ESP_LOGI(FISH_TANK_TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
+
             ESP_LOGI(FISH_TANK_TAG, "Recived topic: %s, the payload: [%s]", receive_topic, receive_payload);
 
-            // handler message
-            // cJSON *json, *json_type, *json_action, *json_message;
-            cJSON *json, *json_type, *json_action;
+            char type = receive_payload[0]; 
+            char action = receive_payload[1]; 
+            ESP_LOGI(FISH_TANK_TAG, "Recived payload item type: %c", type);
+            ESP_LOGI(FISH_TANK_TAG, "Recived payload item action: %c", action);
 
-            ESP_LOGI(FISH_TANK_TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
-            json = cJSON_Parse(receive_payload);
-            int type = -1; 
-            int action = -1; 
-            if(NULL != json){
-                json_type = cJSON_GetObjectItem(json, "type");
-                if(json_type->type == cJSON_Number){
-                    type = json_type->valueint;
-                }
-
-                ESP_LOGI(FISH_TANK_TAG, "Recived payload item type: %d", type);
-
-                json_action = cJSON_GetObjectItem(json, "action");
-                if(json_action->type == cJSON_Number){
-                    action = json_action->valueint;
-                }
-                ESP_LOGI(FISH_TANK_TAG, "Recived payload item action: %d", action);
-
-                // char message[50];
-                // json_message = cJSON_GetObjectItem(json, "message");
-                // if(json_message->type == cJSON_String){
-                //     sprintf(message, "%s", json_message->valuestring);
-                // }
-                // ESP_LOGD(FISH_TANK_TAG, "Recived payload item message: %s", message);
-                // ESP_LOGD(FISH_TANK_TAG, "Recived payload item nonce skip");
-
-                // led
-                if (type == 1){
-                    if (action >= 1){
-                       gpio_set_level(LED_PIN, 1); 
-                    }else{
-                       gpio_set_level(LED_PIN, 0); 
-                    }
-                }else if (type == 2){ // water dump
-                    if (action >= 1){
-                       gpio_set_level(WATER_PUMP_PIN, 1); 
-                    }else{
-                       gpio_set_level(WATER_PUMP_PIN, 0); 
-                    }
-                }else if (type == 3){ // O2 dump
-                    if (action >= 1){
-                       gpio_set_level(O2_PUMP_PIN, 1); 
-                    }else{
-                       gpio_set_level(O2_PUMP_PIN, 0); 
-                    }
+            if (type == '1'){
+                if (action >= '1'){
+                   gpio_set_level(LED_PIN, 1); 
+                   oled_show_str(OLED_LED_X, OLED_LED_Y, "LED:ON ", &Font_7x10, 0);
                 }else{
-                    ESP_LOGI(FISH_TANK_TAG, "Recived type is zero, will skip");
+                   gpio_set_level(LED_PIN, 0); 
+                   oled_show_str(OLED_LED_X, OLED_LED_Y, "LED:OFF", &Font_7x10, 0);
                 }
-
+            }else if (type == '2'){ // water dump
+                if (action >= '1'){
+                   gpio_set_level(WATER_PUMP_PIN, 1); 
+                   oled_show_str(OLED_WATER_X, OLED_WATER_Y, "WATER PUMP:ON ", &Font_7x10, 0);
+                }else{
+                   gpio_set_level(WATER_PUMP_PIN, 0); 
+                   oled_show_str(OLED_WATER_X, OLED_WATER_Y, "WATER PUMP:OFF", &Font_7x10, 0);
+                }
+            }else if (type == '3'){ // O2 dump
+                if (action >= '1'){
+                   gpio_set_level(O2_PUMP_PIN, 1); 
+                   oled_show_str(OLED_O2_X, OLED_O2_Y, "O2 PUMP:ON ", &Font_7x10, 0);
+                }else{
+                   gpio_set_level(O2_PUMP_PIN, 0); 
+                   oled_show_str(OLED_O2_X, OLED_O2_Y, "O2 PUMP:OFF", &Font_7x10, 0);
+                }
             }else{
-                ESP_LOGD(FISH_TANK_TAG, "Recived payload not is json struct");
-            }
-            cJSON_Delete(json);
-            bzero(receive_topic, sizeof(receive_topic));
-            bzero(receive_payload, sizeof(receive_payload));
-
-            ESP_LOGI(FISH_TANK_TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
-            if (type == 1){
-                if (action >= 1){
-                   oled_show_str(1, 41, "LED: ON ", &Font_7x10, 0);
-                }else{
-                   oled_show_str(1, 41, "LED: OFF", &Font_7x10, 0);
-                }
-            }else if (type == 2){ // water dump
-                if (action >= 1){
-                   oled_show_str(1, 11, "WATER PUMP: ON ", &Font_7x10, 0);
-                }else{
-                   oled_show_str(1, 11, "WATER PUMP: OFF", &Font_7x10, 0);
-                }
-            }else if (type == 3){ // O2 dump
-                if (action >= 1){
-                   oled_show_str(1, 21, "O2 PUMP: ON ", &Font_7x10, 0);
-                }else{
-                   oled_show_str(1, 21, "O2 PUMP: OFF", &Font_7x10, 0);
-                }
+                ESP_LOGI(FISH_TANK_TAG, "Recived type is zero, will skip");
             }
 
             break;
@@ -312,25 +276,33 @@ void after_nvs_init_event() {
     ESP_LOGD(FISH_TANK_TAG, "after nvs init event");
 }
 
+void show_message_handle(char *message) {
+    ESP_LOGI(FISH_TANK_TAG, message);
+    if (message != NULL) {
+        oled_show_str(OLED_SYS_X, OLED_SYS_Y, message, &Font_7x10, 0);
+    }
+}
+
+
 void after_network_connect(int type, int status, char *ip) {
     ESP_LOGD(FISH_TANK_TAG, "after network type: %d, the status: %d, current ip: %s", type, status, ip);
     if (status != 1) {
-        oled_show_str(1, 30, "Network error", &Font_7x10, 0);
+        // oled_show_str(OLED_SYS_X, OLED_SYS_Y, "Network error", &Font_7x10, 0);
         return;
     } else {
-        oled_show_str(1, 30, "Network success", &Font_7x10, 0);
+        oled_show_str(OLED_SYS_X, OLED_SYS_Y, "Network success   ", &Font_7x10, 0);
         if (ip != NULL){
-            oled_show_str(1, 1, "ip:", &Font_7x10, 0);
-            oled_show_str(22, 1, ip, &Font_7x10, 0);
+            oled_show_str(OLED_WIFI_X, OLED_WIFI_Y, "IP:", &Font_7x10, 0);
+            oled_show_str(OLED_WIFI_X + 22, OLED_WIFI_Y, ip, &Font_7x10, 0);
         }
 
         // mqtt connection...
         if(mqtt_running == 0){
             ESP_LOGD(FISH_TANK_TAG, "sntp init...");
-            // initialize_sntp();
+            initialize_sntp();
 
-            // setenv("TZ", "CST-8", 1);
-            // tzset();
+            setenv("TZ", "CST-8", 1);
+            tzset();
 
             mqtt_app_start();
             mqtt_running = 1;
@@ -351,20 +323,22 @@ void app_main(void) {
     // Check post startup events
     oled_init();
     oled_all_on();
-    oled_show_str(1, 30, "Loading...", &Font_7x10, 0);
+
+    oled_show_str(OLED_SYS_X, OLED_SYS_Y, "Loading...", &Font_7x10, 0);
 
     gpio_smart_config_init();
     ESP_LOGD(FISH_TANK_TAG, "gpio btn init... %d\n", SMART_CONFIG_BTN);
 
     // check pin btn smartconfig network press
-    oled_show_str(1, 30, "Networking...", &Font_7x10, 0);
-    initialise_wifi(after_network_connect);
-
-
-//    int cnt = 0;
-//    while (1) {
-//        ESP_LOGD(FISH_TANK_TAG, "cnt: %d\n", cnt++);
-//        vTaskDelay(1000 / portTICK_RATE_MS);
-//        gpio_set_level(SMART_CONFIG_BTN, cnt % 2);
-//    }
+    oled_show_str(OLED_SYS_X, OLED_SYS_Y, "Networking...", &Font_7x10, 0);
+    oled_show_str(OLED_WIFI_X, OLED_WIFI_Y, "IP:", &Font_7x10, 0);
+    oled_show_str(OLED_WIFI_X + 22, OLED_WIFI_Y, "0.0.0.0", &Font_7x10, 0);
+    oled_show_str(OLED_WATER_X, OLED_WATER_Y, "WATER PUMP:OFF", &Font_7x10, 0);
+    oled_show_str(OLED_O2_X, OLED_O2_Y, "O2 PUMP:OFF", &Font_7x10, 0);
+    oled_show_str(OLED_LED_X, OLED_LED_Y, "LED:OFF", &Font_7x10, 0);
+    oled_show_str(OLED_LED_X + 56, OLED_LED_Y, "ST:", &Font_7x10, 0);
+    oled_show_str(OLED_LED_X + 77, OLED_LED_Y, "20.1", &Font_7x10, 0);
+    oled_show_str(OLED_LED_X + 105, OLED_LED_Y, "'c", &Font_7x10, 0);
+    initialise_wifi(after_network_connect, show_message_handle);
+    oled_show_str(OLED_TIME_X, OLED_TIME_Y, "Time:05-04 12:01", &Font_7x10, 0);
 }

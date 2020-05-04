@@ -11,9 +11,11 @@
  */
 typedef void(*wifi_callback_t)(int type, int status, char *ip);
 
-void initialise_wifi(wifi_callback_t callback);
+typedef void(*oled_callback_t)(char *message);
 
-void start_smart_config(wifi_callback_t callback);
+void initialise_wifi(wifi_callback_t w_callback, oled_callback_t o_callback);
+
+void start_smart_config(wifi_callback_t  w_callback, oled_callback_t o_callback);
 
 #endif
 
