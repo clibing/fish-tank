@@ -52,8 +52,14 @@ menu "Fish Tank"
                 default 12
                 help
                     LED control pin
-        endmenu
 
+            config DHT_PIN
+                int "DHT11 data pin"
+                default 2
+                help
+                    DHT11 data pin
+        endmenu
+        
         menu "ESP32 GPIO Pin number"
             visible if IDF_TARGET_ESP32
 
