@@ -118,7 +118,7 @@ static void show_current_time(void *param)
     
     time(&now);
     localtime_r(&now, &timeinfo);
-
+    char dtime[12] = {'\0'};
     // Is time set? If not, tm_year will be (1970 - 1900).
     if (timeinfo.tm_year < (2016 - 1900)) {
         ESP_LOGI(FISH_TANK_TAG, "Time is not set yet. Connecting to WiFi and getting time over NTP.");
@@ -143,7 +143,10 @@ static void show_current_time(void *param)
         } else {
             // strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
             // ESP_LOGI(FISH_TANK_TAG, "The current date/time in Shanghai is: %s", strftime_buf);
-            ESP_LOGI(FISH_TANK_TAG, "%02d-%02d %02d:%02d", (timeinfo.tm_mon + 1 ), timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min);
+            sprintf(dtime, "%02d-%02d %02d:%02d", (timeinfo.tm_mon + 1 ), timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min); 
+            ESP_LOGI(FISH_TANK_TAG, dtime);
+            oled_show_str(OLED_TIME_X + 35, OLED_TIME_Y, dtime, &Font_7x10, 0);
+            bzero(dtime, sizeof(dtime));
         }
         vTaskDelay(60000 / portTICK_RATE_MS);
     }
@@ -383,20 +386,21 @@ void DHT11_read(struct DHT11_t *in)
 
 static void fs_dht11_task(void *arg)
 {
-    // DHT11 Configuration
     struct DHT11_t DTHsensor;
-    //Set DHT11 data pin to pin 4
     DTHsensor.PIN = DHT_PIN;
+    char tmp[6] = {'\0'};
     while (1)
     {
         /* Reading sensors */
         DHT11_read(&DTHsensor);
         ESP_LOGD(FISH_TANK_TAG, "Temperature=%d ℃  Humidity=%d\n", DTHsensor.temperature, DTHsensor.humidity);
-        vTaskDelay(5000 / portTICK_RATE_MS);
+        sprintf(tmp, "%02d/%02d", DTHsensor.temperature, DTHsensor.humidity);
+        oled_show_str(OLED_LED_X + 56 + 21, OLED_LED_Y, tmp, &Font_7x10, 0);
+        bzero(tmp, sizeof(tmp));
+        vTaskDelay(30000 / portTICK_RATE_MS);
         // vTaskDelete(NULL);
     }
 }
-
 
 /**
  * @author clibing
@@ -424,11 +428,11 @@ void app_main(void) {
     oled_show_str(OLED_WATER_X, OLED_WATER_Y, "WATER PUMP:OFF", &Font_7x10, 0);
     oled_show_str(OLED_O2_X, OLED_O2_Y, "O2 PUMP:OFF", &Font_7x10, 0);
     oled_show_str(OLED_LED_X, OLED_LED_Y, "LED:OFF", &Font_7x10, 0);
-    oled_show_str(OLED_LED_X + 56, OLED_LED_Y, "ST:", &Font_7x10, 0);
-    oled_show_str(OLED_LED_X + 77, OLED_LED_Y, "20.1", &Font_7x10, 0);
-    oled_show_str(OLED_LED_X + 105, OLED_LED_Y, "'c", &Font_7x10, 0);
+    oled_show_str(OLED_LED_X + 56, OLED_LED_Y, "TH:", &Font_7x10, 0);
+    oled_show_str(OLED_LED_X + 56 + 21 , OLED_LED_Y, "20/22", &Font_7x10, 0);
     initialise_wifi(after_network_connect, show_message_handle);
-    oled_show_str(OLED_TIME_X, OLED_TIME_Y, "Time:05-04 12:01", &Font_7x10, 0);
+    oled_show_str(OLED_TIME_X, OLED_TIME_Y, "Time:", &Font_7x10, 0);
+    oled_show_str(OLED_TIME_X + 35, OLED_TIME_Y, "00-00 00:00", &Font_7x10, 0);
 
     // init dht11
     xTaskCreate(fs_dht11_task, "fs_dht11_task", 4096, NULL, 10, NULL);
