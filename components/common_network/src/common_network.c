@@ -25,9 +25,12 @@ static const char *COMMON_NETWORK = "common-network";
 
 static int type = 0;
 static int retry = 0;
-static wifi_callback_t current_callback;
+static wifi_callback_t net_callback;
+static oled_callback_t oled_callback;
 
 void smartconfig_task(void *parm);
+
+static char ip[20] = {'\0'};
 
 static esp_err_t event_handler(void *ctx, system_event_t *event) {
     /* For accessing reason codes in case of disconnection */
@@ -40,14 +43,12 @@ static esp_err_t event_handler(void *ctx, system_event_t *event) {
         case SYSTEM_EVENT_STA_GOT_IP:
             retry = 0;
             xEventGroupSetBits(wifi_event_group, CONNECTED_BIT);
-            // normal connection wifi
             if (type == 1) {
-                current_callback(type, 1, ip4addr_ntoa(&event->event_info.got_ip.ip_info.ip));
+                net_callback(type, 1, ip4addr_ntoa(&event->event_info.got_ip.ip_info.ip));
             }
             break;
-        case SYSTEM_EVENT_STA_DISCONNECTED:
-            retry++;
-            ESP_LOGE(COMMON_NETWORK, "Disconnect reason : %d", info->disconnected.reason);
+        case SYSTEM_EVENT_STA_DISCONNECTED: retry++;
+            ESP_LOGD(COMMON_NETWORK, "Disconnect reason : %d", info->disconnected.reason);
             if (info->disconnected.reason == WIFI_REASON_BASIC_RATE_NOT_SUPPORT) {
                 /*Switch to 802.11 bgn mode */
                 esp_wifi_set_protocol(ESP_IF_WIFI_STA, WIFI_PROTOCAL_11B | WIFI_PROTOCAL_11G | WIFI_PROTOCAL_11N);
@@ -55,7 +56,8 @@ static esp_err_t event_handler(void *ctx, system_event_t *event) {
             esp_wifi_connect();
             xEventGroupClearBits(wifi_event_group, CONNECTED_BIT);
             if (retry > 3 && retry % 3 == 0) {
-                current_callback(type, -1, NULL);
+                net_callback(type, -1, NULL);
+                oled_callback("Network dis...");
             }
             break;
         default:
@@ -68,15 +70,19 @@ static void sc_callback(smartconfig_status_t status, void *pdata) {
     switch (status) {
         case SC_STATUS_WAIT:
             ESP_LOGI(COMMON_NETWORK, "SC_STATUS_WAIT");
+            oled_callback("SmartConfig wait");
             break;
         case SC_STATUS_FIND_CHANNEL:
             ESP_LOGI(COMMON_NETWORK, "SC_STATUS_FINDING_CHANNEL");
+            oled_callback("SmartConfig find");
             break;
         case SC_STATUS_GETTING_SSID_PSWD:
             ESP_LOGI(COMMON_NETWORK, "SC_STATUS_GETTING_SSID_PSWD");
+            oled_callback("SmartConfig ssid pwd");
             break;
         case SC_STATUS_LINK:
             ESP_LOGI(COMMON_NETWORK, "SC_STATUS_LINK");
+            oled_callback("SmartConfig link");
             wifi_config_t *wifi_config = pdata;
             ESP_LOGI(COMMON_NETWORK, "SSID:%s", wifi_config->sta.ssid);
             ESP_LOGI(COMMON_NETWORK, "PASSWORD:%s", wifi_config->sta.password);
@@ -86,6 +92,7 @@ static void sc_callback(smartconfig_status_t status, void *pdata) {
             break;
         case SC_STATUS_LINK_OVER:
             ESP_LOGI(COMMON_NETWORK, "SC_STATUS_LINK_OVER");
+            oled_callback("SmartConfig over");
             if (pdata != NULL) {
                 sc_callback_data_t *sc_callback_data = (sc_callback_data_t *) pdata;
                 switch (sc_callback_data->type) {
@@ -93,6 +100,12 @@ static void sc_callback(smartconfig_status_t status, void *pdata) {
                         ESP_LOGI(COMMON_NETWORK, "Phone ip: %d.%d.%d.%d", sc_callback_data->ip[0],
                                  sc_callback_data->ip[1], sc_callback_data->ip[2], sc_callback_data->ip[3]);
                         ESP_LOGI(COMMON_NETWORK, "TYPE: ESPTOUCH");
+                        sprintf(ip, "%d.%d.%d.%d", 
+                                    sc_callback_data->ip[0], 
+                                    sc_callback_data->ip[1], 
+                                    sc_callback_data->ip[2], 
+                                    sc_callback_data->ip[3]);
+                        oled_callback("SmartConfig OK");
                         break;
                     case SC_ACK_TYPE_AIRKISS:
                         ESP_LOGI(COMMON_NETWORK, "TYPE: AIRKISS");
@@ -122,7 +135,7 @@ void smartconfig_task(void *parm) {
             ESP_LOGI(COMMON_NETWORK, "smartconfig over");
             esp_smartconfig_stop();
             if (type == 2) {
-                current_callback(type, 1, NULL);
+                net_callback(type, 1, ip);
             }
             vTaskDelete(NULL);
         }
@@ -130,7 +143,7 @@ void smartconfig_task(void *parm) {
 }
 
 
-void initialise_wifi(wifi_callback_t callback) {
+void initialise_wifi(wifi_callback_t w_callback, oled_callback_t o_callback) {
     tcpip_adapter_init();
     wifi_event_group = xEventGroupCreate();
     ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
@@ -142,27 +155,29 @@ void initialise_wifi(wifi_callback_t callback) {
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 
-#if CONFIG_WiFi_DEFAULT_ENABLE
-    wifi_config_t wifi_config = {
-        .sta = {
-            .ssid = CONFIG_WIFI_SSID,
-            .password = CONFIG_WIFI_PWD
-        },
-    };
-    ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config) );
-#endif
+//  #if CONFIG_WiFi_DEFAULT_ENABLE
+//      wifi_config_t wifi_config = {
+//          .sta = {
+//              .ssid = CONFIG_WIFI_SSID,
+//              .password = CONFIG_WIFI_PWD
+//          },
+//      };
+//      ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config) );
+//  #endif
 
     ESP_ERROR_CHECK(esp_wifi_start());
 
     type = 1;
-    current_callback = callback;
+    net_callback = w_callback;
+    oled_callback = o_callback;
     esp_wifi_connect();
 }
 
-void start_smart_config(wifi_callback_t callback) {
+void start_smart_config(wifi_callback_t w_callback, oled_callback_t o_callback) {
     ESP_ERROR_CHECK(esp_wifi_start());
     type = 2;
-    current_callback = callback;
+    net_callback = w_callback;
+    oled_callback = o_callback;
     // start smart config network
     xTaskCreate(smartconfig_task, "smartconfig_task", 4096, NULL, 3, NULL);
 }
