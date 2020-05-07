@@ -57,16 +57,16 @@
 #define OLED_SYS_Y          2 
 
 #define OLED_WIFI_X         OLED_X
-#define OLED_WIFI_Y         16 
+#define OLED_WIFI_Y         15 
 
 #define OLED_WATER_X        OLED_X
-#define OLED_WATER_Y        26
+#define OLED_WATER_Y        25
 
 #define OLED_O2_X           OLED_X
-#define OLED_O2_Y           35      
+#define OLED_O2_Y           34      
 
 #define OLED_LED_X          OLED_X
-#define OLED_LED_Y          44        
+#define OLED_LED_Y          43        
 
 #define OLED_TIME_X         OLED_X
 #define OLED_TIME_Y         53
