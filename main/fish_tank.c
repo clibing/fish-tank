@@ -37,6 +37,7 @@
 #include "common_nvs.h"
 #include "common_network.h"
 #include "common_oled.h"
+#include "common_dht11.h"
 
 
 #define SMART_CONFIG_BTN    CONFIG_SMART_CONFIG_BTN_PIN
@@ -71,6 +72,9 @@
 #define OLED_TIME_X         OLED_X
 #define OLED_TIME_Y         53
 
+// dht11
+#define DHT_PIN             CONFIG_DHT_PIN
+
 extern uint32_t esp_get_time(void);
 
 static const char *FISH_TANK_TAG = "fish_tank";
@@ -82,8 +86,6 @@ void show_message_handle(char *message);
 static xQueueHandle gpio_evt_queue = NULL;
 
 static int mqtt_running = 0;
-// static time_t curtime;
- 
 
 static void initialize_sntp(void)
 {
@@ -92,6 +94,64 @@ static void initialize_sntp(void)
     sntp_setservername(0, "pool.ntp.org");
     sntp_init();
 }
+
+static void obtain_time(void)
+{
+    // wait for time to be set
+    time_t now = 0;
+    struct tm timeinfo = { 0 };
+    int retry = 0;
+    const int retry_count = 3;
+
+    while (timeinfo.tm_year < (2016 - 1900) && ++retry < retry_count) {
+        ESP_LOGI(FISH_TANK_TAG, "Waiting for system time to be set... (%d/%d)", retry, retry_count);
+        vTaskDelay(2000 / portTICK_PERIOD_MS);
+        time(&now);
+        localtime_r(&now, &timeinfo);
+    }
+}
+
+static void show_current_time(void *param)
+{
+    time_t now;
+    struct tm timeinfo;
+    
+    time(&now);
+    localtime_r(&now, &timeinfo);
+    char dtime[12] = {'\0'};
+    // Is time set? If not, tm_year will be (1970 - 1900).
+    if (timeinfo.tm_year < (2016 - 1900)) {
+        ESP_LOGI(FISH_TANK_TAG, "Time is not set yet. Connecting to WiFi and getting time over NTP.");
+        obtain_time();
+    }
+
+    // Set timezone to Eastern Standard Time and print local time
+    // setenv("TZ", "EST5EDT,M3.2.0/2,M11.1.0", 1);
+    // tzset();
+
+    // Set timezone to China Standard Time
+    setenv("TZ", "CST-8", 1);
+    tzset();
+
+    while (1) {
+        // update 'now' variable with current time
+        time(&now);
+        localtime_r(&now, &timeinfo);
+
+        if (timeinfo.tm_year < (2016 - 1900)) {
+            ESP_LOGE(FISH_TANK_TAG, "The current date/time error");
+        } else {
+            // strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
+            // ESP_LOGI(FISH_TANK_TAG, "The current date/time in Shanghai is: %s", strftime_buf);
+            sprintf(dtime, "%02d-%02d %02d:%02d", (timeinfo.tm_mon + 1 ), timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min); 
+            ESP_LOGI(FISH_TANK_TAG, dtime);
+            oled_show_str(OLED_TIME_X + 35, OLED_TIME_Y, dtime, &Font_7x10, 0);
+            bzero(dtime, sizeof(dtime));
+        }
+        vTaskDelay(60000 / portTICK_RATE_MS);
+    }
+}
+
 
 static void gpio_isr_handler(void *arg) {
     uint32_t gpio_num = (uint32_t) arg;
@@ -283,7 +343,6 @@ void show_message_handle(char *message) {
     }
 }
 
-
 void after_network_connect(int type, int status, char *ip) {
     ESP_LOGD(FISH_TANK_TAG, "after network type: %d, the status: %d, current ip: %s", type, status, ip);
     if (status != 1) {
@@ -301,12 +360,45 @@ void after_network_connect(int type, int status, char *ip) {
             ESP_LOGD(FISH_TANK_TAG, "sntp init...");
             initialize_sntp();
 
-            setenv("TZ", "CST-8", 1);
-            tzset();
+            xTaskCreate(show_current_time, "show_current_time", 4096, NULL, 10, NULL);
 
             mqtt_app_start();
             mqtt_running = 1;
         }
+    }
+}
+
+void DHT11_read(struct DHT11_t *in)
+{
+    int response = getData(in);
+    if (response == DHT_OK)
+    {
+        //Do something if the lecture is OK
+    }
+    else
+    {
+        //Handle the error
+        DHT_errorHandle(response);
+        in->temperature = -2;
+        in->humidity = -2;
+    }
+}
+
+static void fs_dht11_task(void *arg)
+{
+    struct DHT11_t DTHsensor;
+    DTHsensor.PIN = DHT_PIN;
+    char tmp[6] = {'\0'};
+    while (1)
+    {
+        /* Reading sensors */
+        DHT11_read(&DTHsensor);
+        ESP_LOGD(FISH_TANK_TAG, "Temperature=%d ℃  Humidity=%d\n", DTHsensor.temperature, DTHsensor.humidity);
+        sprintf(tmp, "%02d/%02d", DTHsensor.temperature, DTHsensor.humidity);
+        oled_show_str(OLED_LED_X + 56 + 21, OLED_LED_Y, tmp, &Font_7x10, 0);
+        bzero(tmp, sizeof(tmp));
+        vTaskDelay(30000 / portTICK_RATE_MS);
+        // vTaskDelete(NULL);
     }
 }
 
@@ -336,9 +428,12 @@ void app_main(void) {
     oled_show_str(OLED_WATER_X, OLED_WATER_Y, "WATER PUMP:OFF", &Font_7x10, 0);
     oled_show_str(OLED_O2_X, OLED_O2_Y, "O2 PUMP:OFF", &Font_7x10, 0);
     oled_show_str(OLED_LED_X, OLED_LED_Y, "LED:OFF", &Font_7x10, 0);
-    oled_show_str(OLED_LED_X + 56, OLED_LED_Y, "ST:", &Font_7x10, 0);
-    oled_show_str(OLED_LED_X + 77, OLED_LED_Y, "20.1", &Font_7x10, 0);
-    oled_show_str(OLED_LED_X + 105, OLED_LED_Y, "'c", &Font_7x10, 0);
+    oled_show_str(OLED_LED_X + 56, OLED_LED_Y, "TH:", &Font_7x10, 0);
+    oled_show_str(OLED_LED_X + 56 + 21 , OLED_LED_Y, "20/22", &Font_7x10, 0);
     initialise_wifi(after_network_connect, show_message_handle);
-    oled_show_str(OLED_TIME_X, OLED_TIME_Y, "Time:05-04 12:01", &Font_7x10, 0);
+    oled_show_str(OLED_TIME_X, OLED_TIME_Y, "Time:", &Font_7x10, 0);
+    oled_show_str(OLED_TIME_X + 35, OLED_TIME_Y, "00-00 00:00", &Font_7x10, 0);
+
+    // init dht11
+    xTaskCreate(fs_dht11_task, "fs_dht11_task", 4096, NULL, 10, NULL);
 }
