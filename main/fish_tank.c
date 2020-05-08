@@ -450,7 +450,7 @@ void fs_dht_task(void *arg) {
         } else {
             ESP_LOGI("DHT", "Fail to get dht temperature data\n");
         }
-        vTaskDelay(30000 / portTICK_PERIOD_MS);
+        vTaskDelay(3000 / portTICK_PERIOD_MS);
     }
     vTaskDelete(NULL);
 }
