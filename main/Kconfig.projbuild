@@ -82,16 +82,45 @@ menu "Fish Tank"
 
         config CLIENT_ID 
             string "Mqtt Client Id"
-            default "ft-01"
+            default "01-0001"
             help
-                Client ID to access mqtt
+                Unique identification of equipment, 01: esp8266, 02: esp32, 0001:Device number
 
         config MQTT_USER_NAME
             string "Mqtt user name"
-            default "ft-01"
+            default "guest"
             help
-                User name to access mqtt
+                Account number for accessing mqtt
 
+        config MQTT_PASSWORD
+            string "Mqtt password"
+            default "guest"
+            help
+                Password for accessing mqtt
+
+        config DEVICE_TOPIC 
+            string "Device topic "
+            default "/topic/"
+            help
+                Device topic will reveive message, Splicing with chip ID
+
+        config SYS_TOPIC
+            string "System topic"
+            default "/System"
+            help
+                System topic will receive sys message, such as report message, fireware upgrade, other 
+
+        config ONLINE_TOPIC
+            string "Onlien topic"
+            default "/Online"
+            help
+                Send a message to the topic when the device goes online.
+
+        config OFFLINE_TOPIC
+            string "Offline topic"
+            default "/Offline"
+            help
+                Device offline, will send lwt message when device power off or mqtt disconnection.
     endmenu
 
     menu "WiFi Default Configuration"
