@@ -16,7 +16,7 @@
 #include "esp_system.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
-
+#include "esp_spi_flash.h"
 #include "driver/gpio.h"
 
 // smart config include
@@ -40,40 +40,35 @@
 #include "common_dht11.h"
 
 
-#define SMART_CONFIG_BTN    CONFIG_SMART_CONFIG_BTN_PIN
+#define SMART_CONFIG_BTN      CONFIG_SMART_CONFIG_BTN_PIN
 #define SMART_CONFIG_PIN_SEL  (1ULL<<SMART_CONFIG_BTN)
 
-#define WATER_PUMP_PIN      CONFIG_WATER_PUMP_PIN
-#define O2_PUMP_PIN         CONFIG_O2_PUMP_PIN
-#define LED_PIN             CONFIG_LED_PIN
-#define GPIO_FT_OUT_PIN_SSL    ((1ULL<<WATER_PUMP_PIN) | (1ULL<<O2_PUMP_PIN) | (1ULL<<LED_PIN))
+#define WATER_PUMP_PIN        CONFIG_WATER_PUMP_PIN
+#define O2_PUMP_PIN           CONFIG_O2_PUMP_PIN
+#define LED_PIN               CONFIG_LED_PIN
+#define GPIO_FT_OUT_PIN_SSL   ((1ULL<<WATER_PUMP_PIN) | (1ULL<<O2_PUMP_PIN) | (1ULL<<LED_PIN))
 
-#define CLIENT_ID           CONFIG_CLIENT_ID
-#define MQTT_USER_NAME      CONFIG_MQTT_USER_NAME
-#define SELF_TOPIC_NAME     "/fish-tank/"CONFIG_MQTT_USER_NAME
-#define SYS_TOPIC_NAME      "/fish-tank/sys"
+#define SELF_TOPIC_NAME       "/fish-tank/"CONFIG_MQTT_USER_NAME
+#define SYS_TOPIC_NAME        CONFIG_SYS_TOPIC      // sub this topic, will handle firmware upgrade, report status, report message before deep model.
+#define ON_TOPIC_NAME         CONFIG_ONLINE_TOPIC   // report send message when mqtt ok 
+#define OFF_TOPIC_NAME        CONFIG_OFFLINE_TOPIC  // lwt
 
-#define OLED_X              0
-#define OLED_SYS_X          OLED_X
-#define OLED_SYS_Y          2 
-
-#define OLED_WIFI_X         OLED_X
-#define OLED_WIFI_Y         15 
-
-#define OLED_WATER_X        OLED_X
-#define OLED_WATER_Y        25
-
-#define OLED_O2_X           OLED_X
-#define OLED_O2_Y           34      
-
-#define OLED_LED_X          OLED_X
-#define OLED_LED_Y          43        
-
-#define OLED_TIME_X         OLED_X
-#define OLED_TIME_Y         53
+#define OLED_X                0
+#define OLED_SYS_X            OLED_X
+#define OLED_SYS_Y            2 
+#define OLED_WIFI_X           OLED_X
+#define OLED_WIFI_Y           15 
+#define OLED_WATER_X          OLED_X
+#define OLED_WATER_Y          25
+#define OLED_O2_X             OLED_X
+#define OLED_O2_Y             34      
+#define OLED_LED_X            OLED_X
+#define OLED_LED_Y            43        
+#define OLED_TIME_X           OLED_X
+#define OLED_TIME_Y           53
 
 // dht11
-#define DHT_PIN             CONFIG_DHT_PIN
+#define DHT_PIN               CONFIG_DHT_PIN
 
 extern uint32_t esp_get_time(void);
 
@@ -86,6 +81,8 @@ void show_message_handle(char *message);
 static xQueueHandle gpio_evt_queue = NULL;
 
 static int mqtt_running = 0;
+
+static uint8_t mac[6];
 
 static void initialize_sntp(void)
 {
@@ -230,6 +227,9 @@ void gpio_smart_config_init() {
 
 extern const uint8_t fs_ca_pem_start[]   asm("_binary_root_ca_pem_start");
 extern const uint8_t fs_ca_end[]   asm("_binary_root_ca_pem_end");
+static const int FS_MQTT_CONNECTE_OK_BIT = BIT2; 
+static const int FS_MQTT_CONNECTE_FAILED_BIT = BIT3;
+static EventGroupHandle_t fs_mqtt_event_group;
 
 static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 {
@@ -243,13 +243,29 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
     switch (event->event_id) {
         case MQTT_EVENT_CONNECTED:
             ESP_LOGI(FISH_TANK_TAG, "MQTT_EVENT_CONNECTED");
-            msg_id = esp_mqtt_client_subscribe(client, SYS_TOPIC_NAME, 1);
+            msg_id = esp_mqtt_client_subscribe(client, CONFIG_SYS_TOPIC, 1);
             ESP_LOGI(FISH_TANK_TAG, "sys subscribe successful, msg_id=%d", msg_id);
-            msg_id = esp_mqtt_client_subscribe(client, SELF_TOPIC_NAME, 1);
-            ESP_LOGI(FISH_TANK_TAG, "self subscribe successful, msg_id=%d", msg_id);
+            char t_mac[13];
+            sprintf(t_mac, "%02x%02x%02x%02x%02x%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
+            char self_topic[50];
+            sprintf(self_topic, "%s%s", CONFIG_DEVICE_TOPIC, t_mac);
+            msg_id = esp_mqtt_client_subscribe(client, self_topic, 1);
+
+            ESP_LOGI(FISH_TANK_TAG, "self subscribe successful, msg_id=%d", msg_id); 
+            char online_message[100];
+            sprintf(online_message, "{\"clientId\":\"%s\",\"chipId\":\"esp8266_%s\",\"sdk\":\"%s\",\"chipSize\":\"%d(MB)\"}", 
+                    CONFIG_CLIENT_ID, t_mac, esp_get_idf_version(), spi_flash_get_chip_size() / (1024 * 1024)); 
+            msg_id = esp_mqtt_client_publish(client, ON_TOPIC_NAME, online_message, 0, 0, 0);
+            bzero(t_mac, sizeof(t_mac));
+            bzero(self_topic, sizeof(self_topic));
+            bzero(online_message, sizeof(online_message));
+
+            xEventGroupSetBits(fs_mqtt_event_group, FS_MQTT_CONNECTE_OK_BIT);
             break;
         case MQTT_EVENT_DISCONNECTED:
             ESP_LOGI(FISH_TANK_TAG, "MQTT_EVENT_DISCONNECTED");
+            xEventGroupSetBits(fs_mqtt_event_group, FS_MQTT_CONNECTE_FAILED_BIT);
             break;
         case MQTT_EVENT_SUBSCRIBED:
             ESP_LOGI(FISH_TANK_TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
@@ -266,6 +282,9 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
             int tlen = event->topic_len;
             char receive_topic[tlen + 1];
             sprintf(receive_topic, "%.*s", event->topic_len, event->topic);
+
+            // todo
+            // handle sytem topic or device topic, current handle to device topic
 
             int plen = event->data_len;
             char receive_payload[plen + 1];
@@ -317,12 +336,33 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
     return ESP_OK;
 }
 
+
+void report_task(void *parm) {
+    EventBits_t mqttBits;
+    while (1) {
+        mqttBits = xEventGroupWaitBits(fs_mqtt_event_group, FS_MQTT_CONNECTE_OK_BIT | FS_MQTT_CONNECTE_FAILED_BIT, true, false, portMAX_DELAY);
+        if (mqttBits & FS_MQTT_CONNECTE_OK_BIT) {
+            ESP_LOGI(FISH_TANK_TAG, "mqtt connection ok");
+            vTaskDelay(3000 / portTICK_RATE_MS);
+        }
+        if (mqttBits & FS_MQTT_CONNECTE_FAILED_BIT){
+            vTaskDelete(NULL);
+            break;
+        }
+    }
+}
+
 static void mqtt_app_start(void)
 {
+    char lwt[64];
+    sprintf(lwt, "\"clientId\":\"%s\",\"chipId\":\"esp8266_%02x%02x%02x%02x%02x%02x\"", CONFIG_CLIENT_ID, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     const esp_mqtt_client_config_t mqtt_cfg = {
+            .uri = CONFIG_BROKER_URI,
             .client_id = CONFIG_CLIENT_ID,
             .username = CONFIG_MQTT_USER_NAME,
-            .uri = CONFIG_BROKER_URI,
+            .password = CONFIG_MQTT_PASSWORD,
+            .lwt_topic = CONFIG_OFFLINE_TOPIC,
+            .lwt_msg = lwt,
             .event_handle = mqtt_event_handler,
             .cert_pem = (const char *)fs_ca_pem_start,
     };
@@ -330,6 +370,8 @@ static void mqtt_app_start(void)
     ESP_LOGI(FISH_TANK_TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
     esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
     esp_mqtt_client_start(client);
+    fs_mqtt_event_group = xEventGroupCreate();
+    xTaskCreate(report_task, "report_task", 4096, client, 10, NULL);
 }
 
 void after_nvs_init_event() {
@@ -357,6 +399,8 @@ void after_network_connect(int type, int status, char *ip) {
 
         // mqtt connection...
         if(mqtt_running == 0){
+            
+
             ESP_LOGD(FISH_TANK_TAG, "sntp init...");
             initialize_sntp();
 
@@ -402,6 +446,25 @@ static void fs_dht11_task(void *arg)
     }
 }
 
+/* 'version' command */
+static int get_version(int argc, char **argv)
+{
+    esp_chip_info_t info;
+    esp_chip_info(&info);
+    printf("IDF Version:%s\r\n", esp_get_idf_version());
+    printf("Chip info:\r\n");
+    printf("\tmodel:%s\r\n", info.model == CHIP_ESP8266 ? "ESP8266" : "Unknow");
+    printf("\tcores:%d\r\n", info.cores);
+    printf("\tfeature:%s%s%s%s%d%s\r\n",
+           info.features & CHIP_FEATURE_WIFI_BGN ? "/802.11bgn" : "",
+           info.features & CHIP_FEATURE_BLE ? "/BLE" : "",
+           info.features & CHIP_FEATURE_BT ? "/BT" : "",
+           info.features & CHIP_FEATURE_EMB_FLASH ? "/Embedded-Flash:" : "/External-Flash:",
+           spi_flash_get_chip_size() / (1024 * 1024), " MB");
+    printf("\trevision number:%d\r\n", info.revision);
+    return 0;
+}
+
 /**
  * @author clibing
  * @function user application start
@@ -411,6 +474,9 @@ void app_main(void) {
     ESP_LOGD(FISH_TANK_TAG, "nvs init...");
     // nvs_flash_erase();
     common_nvs_init(after_nvs_init_event);
+
+    // read sta wifi mac
+    esp_read_mac(mac, ESP_MAC_WIFI_STA);
 
     // Check post startup events
     oled_init();
@@ -435,5 +501,5 @@ void app_main(void) {
     oled_show_str(OLED_TIME_X + 35, OLED_TIME_Y, "00-00 00:00", &Font_7x10, 0);
 
     // init dht11
-    xTaskCreate(fs_dht11_task, "fs_dht11_task", 4096, NULL, 10, NULL);
+    // xTaskCreate(fs_dht11_task, "fs_dht11_task", 4096, NULL, 10, NULL);
 }
