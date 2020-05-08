@@ -98,9 +98,9 @@ menu "Fish Tank"
             help
                 Password for accessing mqtt
 
-        config DEVICE_TOPIC 
+        config DEVICE_TOPIC_PRE 
             string "Device topic "
-            default "/topic/"
+            default "/Topic/"
             help
                 Device topic will reveive message, Splicing with chip ID
 
@@ -109,6 +109,13 @@ menu "Fish Tank"
             default "/System"
             help
                 System topic will receive sys message, such as report message, fireware upgrade, other 
+
+        config REPORT_TOPIC
+            string "Report host info topic"
+            default "/Report"
+            help
+                Current basic information and function pin status will be reported
+
 
         config ONLINE_TOPIC
             string "Onlien topic"
