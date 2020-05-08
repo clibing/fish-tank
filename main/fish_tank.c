@@ -37,7 +37,7 @@
 #include "common_nvs.h"
 #include "common_network.h"
 #include "common_oled.h"
-#include "common_dht11.h"
+#include "common_dht.h"
 
 
 #define SMART_CONFIG_BTN      CONFIG_SMART_CONFIG_BTN_PIN
@@ -54,15 +54,15 @@
 
 #define OLED_X                0
 #define OLED_SYS_X            OLED_X
-#define OLED_SYS_Y            2 
+#define OLED_SYS_Y            2
 #define OLED_WIFI_X           OLED_X
-#define OLED_WIFI_Y           15 
+#define OLED_WIFI_Y           15
 #define OLED_WATER_X          OLED_X
 #define OLED_WATER_Y          25
 #define OLED_O2_X             OLED_X
-#define OLED_O2_Y             34      
+#define OLED_O2_Y             34
 #define OLED_LED_X            OLED_X
-#define OLED_LED_Y            43        
+#define OLED_LED_Y            43
 #define OLED_TIME_X           OLED_X
 #define OLED_TIME_Y           53
 
@@ -75,6 +75,7 @@ static const char *FISH_TANK_TAG = "fish_tank";
 
 // callback
 void after_network_connect(int type, int status, char *ip);
+
 void show_message_handle(char *message);
 
 static xQueueHandle gpio_evt_queue = NULL;
@@ -83,19 +84,17 @@ static int loading = 0;
 
 static uint8_t mac[6];
 
-static void initialize_sntp(void)
-{
+static void initialize_sntp(void) {
     ESP_LOGI(FISH_TANK_TAG, "Initializing SNTP");
     sntp_setoperatingmode(SNTP_OPMODE_POLL);
     sntp_setservername(0, "pool.ntp.org");
     sntp_init();
 }
 
-static void obtain_time(void)
-{
+static void obtain_time(void) {
     // wait for time to be set
     time_t now = 0;
-    struct tm timeinfo = { 0 };
+    struct tm timeinfo = {0};
     int retry = 0;
     const int retry_count = 3;
 
@@ -107,11 +106,10 @@ static void obtain_time(void)
     }
 }
 
-static void show_current_time(void *param)
-{
+static void show_current_time(void *param) {
     time_t now;
     struct tm timeinfo;
-    
+
     time(&now);
     localtime_r(&now, &timeinfo);
     char dtime[12] = {'\0'};
@@ -139,7 +137,8 @@ static void show_current_time(void *param)
         } else {
             // strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
             // ESP_LOGI(FISH_TANK_TAG, "The current date/time in Shanghai is: %s", strftime_buf);
-            sprintf(dtime, "%02d-%02d %02d:%02d", (timeinfo.tm_mon + 1 ), timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min); 
+            sprintf(dtime, "%02d-%02d %02d:%02d", (timeinfo.tm_mon + 1), timeinfo.tm_mday, timeinfo.tm_hour,
+                    timeinfo.tm_min);
             ESP_LOGI(FISH_TANK_TAG, dtime);
             oled_show_str(OLED_TIME_X + 35, OLED_TIME_Y, dtime, &Font_7x10, 0);
             bzero(dtime, sizeof(dtime));
@@ -183,11 +182,11 @@ static void gpio_task(void *arg) {
             } else if (backup_time > 50) {
                 ESP_LOGD("key", "Short 500 %d", backup_time);
                 int value = gpio_get_level(LED_PIN);
-                if (value == 0){
+                if (value == 0) {
                     gpio_set_level(LED_PIN, 1);
                     ESP_LOGD("key", "pin %d level: 1", LED_PIN);
                     oled_show_str(OLED_LED_X, OLED_LED_Y, "LED:ON ", &Font_7x10, 0);
-                }else{
+                } else {
                     gpio_set_level(LED_PIN, 0);
                     ESP_LOGD("key", "pin %d level: 0", LED_PIN);
                     oled_show_str(OLED_LED_X, OLED_LED_Y, "LED:OFF", &Font_7x10, 0);
@@ -221,7 +220,9 @@ void gpio_smart_config_init() {
     gpio_install_isr_service(0);
     gpio_isr_handler_add(SMART_CONFIG_BTN, gpio_isr_handler, (void *) SMART_CONFIG_BTN);
 
-    ESP_LOGD(FISH_TANK_TAG, "GPIO init OK, detail: SMART_CONFIG_BTN: %d, WATER_PUMP_PIN: %d, O2_PUMP_PIN: %d, LED_PIN: %d ", SMART_CONFIG_BTN, WATER_PUMP_PIN, O2_PUMP_PIN, LED_PIN);
+    ESP_LOGD(FISH_TANK_TAG,
+             "GPIO init OK, detail: SMART_CONFIG_BTN: %d, WATER_PUMP_PIN: %d, O2_PUMP_PIN: %d, LED_PIN: %d ",
+             SMART_CONFIG_BTN, WATER_PUMP_PIN, O2_PUMP_PIN, LED_PIN);
 }
 
 extern const uint8_t fs_ca_pem_start[]   asm("_binary_root_ca_pem_start");
@@ -230,10 +231,10 @@ extern const uint8_t fs_ca_end[]   asm("_binary_root_ca_pem_end");
 // 0 normal 1 dis
 static int mqtt_status = 0;
 static int report_delay = 1;
+
 static void report_task(void *parm);
 
-static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
-{
+static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event) {
     esp_mqtt_client_handle_t client = event->client;
     int msg_id;
     /**
@@ -254,9 +255,9 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
             sprintf(self_topic, "%s%s", CONFIG_DEVICE_TOPIC_PRE, t_mac);
             msg_id = esp_mqtt_client_subscribe(client, self_topic, 1);
 
-            ESP_LOGI(FISH_TANK_TAG, "device topic subscribe successful, msg_id=%d", msg_id); 
+            ESP_LOGI(FISH_TANK_TAG, "device topic subscribe successful, msg_id=%d", msg_id);
             char online_message[100];
-            sprintf(online_message, "{\"clientId\":\"%s\",\"chipId\":\"esp8266_%s\"}", CONFIG_CLIENT_ID, t_mac); 
+            sprintf(online_message, "{\"clientId\":\"%s\",\"chipId\":\"esp8266_%s\"}", CONFIG_CLIENT_ID, t_mac);
             msg_id = esp_mqtt_client_publish(client, ON_TOPIC_NAME, online_message, 0, 0, 0);
 
             bzero(t_mac, sizeof(t_mac));
@@ -278,7 +279,7 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
         case MQTT_EVENT_PUBLISHED:
             ESP_LOGI(FISH_TANK_TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
             break;
-        case MQTT_EVENT_DATA:{
+        case MQTT_EVENT_DATA: {
             ESP_LOGI(FISH_TANK_TAG, "MQTT_EVENT_DATA");
             ESP_LOGI(FISH_TANK_TAG, "Free memory: %d bytes", esp_get_free_heap_size());
             // reset report frequency
@@ -286,7 +287,7 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
             int tlen = event->topic_len;
             char receive_topic[tlen + 1];
             sprintf(receive_topic, "%.*s", event->topic_len, event->topic);
-            if(strcmp(receive_topic, CONFIG_SYS_TOPIC)) {
+            if (strcmp(receive_topic, CONFIG_SYS_TOPIC)) {
                 ESP_LOGI(FISH_TANK_TAG, "Recived system topic");
                 break;
             }
@@ -299,36 +300,36 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 
             ESP_LOGI(FISH_TANK_TAG, "Recived topic: %s, the payload: [%s]", receive_topic, receive_payload);
 
-            char type = receive_payload[0]; 
-            char action = receive_payload[1]; 
+            char type = receive_payload[0];
+            char action = receive_payload[1];
             ESP_LOGI(FISH_TANK_TAG, "Recived payload item type: %c", type);
             ESP_LOGI(FISH_TANK_TAG, "Recived payload item action: %c", action);
 
-            if (type == '1'){
-                if (action >= '1'){
-                   gpio_set_level(LED_PIN, 1); 
-                   oled_show_str(OLED_LED_X, OLED_LED_Y, "LED:ON ", &Font_7x10, 0);
-                }else{
-                   gpio_set_level(LED_PIN, 0); 
-                   oled_show_str(OLED_LED_X, OLED_LED_Y, "LED:OFF", &Font_7x10, 0);
+            if (type == '1') {
+                if (action >= '1') {
+                    gpio_set_level(LED_PIN, 1);
+                    oled_show_str(OLED_LED_X, OLED_LED_Y, "LED:ON ", &Font_7x10, 0);
+                } else {
+                    gpio_set_level(LED_PIN, 0);
+                    oled_show_str(OLED_LED_X, OLED_LED_Y, "LED:OFF", &Font_7x10, 0);
                 }
-            }else if (type == '2'){ // water dump
-                if (action >= '1'){
-                   gpio_set_level(WATER_PUMP_PIN, 1); 
-                   oled_show_str(OLED_WATER_X, OLED_WATER_Y, "WATER PUMP:ON ", &Font_7x10, 0);
-                }else{
-                   gpio_set_level(WATER_PUMP_PIN, 0); 
-                   oled_show_str(OLED_WATER_X, OLED_WATER_Y, "WATER PUMP:OFF", &Font_7x10, 0);
+            } else if (type == '2') { // water dump
+                if (action >= '1') {
+                    gpio_set_level(WATER_PUMP_PIN, 1);
+                    oled_show_str(OLED_WATER_X, OLED_WATER_Y, "WATER PUMP:ON ", &Font_7x10, 0);
+                } else {
+                    gpio_set_level(WATER_PUMP_PIN, 0);
+                    oled_show_str(OLED_WATER_X, OLED_WATER_Y, "WATER PUMP:OFF", &Font_7x10, 0);
                 }
-            }else if (type == '3'){ // O2 dump
-                if (action >= '1'){
-                   gpio_set_level(O2_PUMP_PIN, 1); 
-                   oled_show_str(OLED_O2_X, OLED_O2_Y, "O2 PUMP:ON ", &Font_7x10, 0);
-                }else{
-                   gpio_set_level(O2_PUMP_PIN, 0); 
-                   oled_show_str(OLED_O2_X, OLED_O2_Y, "O2 PUMP:OFF", &Font_7x10, 0);
+            } else if (type == '3') { // O2 dump
+                if (action >= '1') {
+                    gpio_set_level(O2_PUMP_PIN, 1);
+                    oled_show_str(OLED_O2_X, OLED_O2_Y, "O2 PUMP:ON ", &Font_7x10, 0);
+                } else {
+                    gpio_set_level(O2_PUMP_PIN, 0);
+                    oled_show_str(OLED_O2_X, OLED_O2_Y, "O2 PUMP:OFF", &Font_7x10, 0);
                 }
-            }else{
+            } else {
                 ESP_LOGI(FISH_TANK_TAG, "Recived type is zero, will skip");
             }
 
@@ -341,34 +342,30 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
     return ESP_OK;
 }
 
-static void report_task(void *parm)
-{
-    esp_mqtt_client_handle_t client = (esp_mqtt_client_handle_t)parm;
-    while (1)
-    {
-        if (mqtt_status == 1)
-        {
+static void report_task(void *parm) {
+    esp_mqtt_client_handle_t client = (esp_mqtt_client_handle_t) parm;
+    while (1) {
+        if (mqtt_status == 1) {
             char report_msg[256];
-            sprintf(report_msg, "{\"clientId\":\"%s\",\"model\":1,\"chipId\":\"%02x%02x%02x%02x%02x%02x\",\"size\":\"%d(MB)\",\"sdk\":\"%s\",\"memory\":\"%d(bytes)\",\"led\":%d,\"waterPump\":%d,\"o2Pump\":%d,\"pwoer\":1}",
-                    CONFIG_CLIENT_ID, 
-                    mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], 
+            sprintf(report_msg,
+                    "{\"clientId\":\"%s\",\"model\":1,\"chipId\":\"%02x%02x%02x%02x%02x%02x\",\"size\":\"%d(MB)\",\"sdk\":\"%s\",\"memory\":\"%d(bytes)\",\"led\":%d,\"waterPump\":%d,\"o2Pump\":%d,\"pwoer\":1}",
+                    CONFIG_CLIENT_ID,
+                    mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
                     spi_flash_get_chip_size() / (1024 * 1024),
                     esp_get_idf_version(),
-                    esp_get_free_heap_size(), 
-                    gpio_get_level(LED_PIN), 
-                    gpio_get_level(WATER_PUMP_PIN), 
+                    esp_get_free_heap_size(),
+                    gpio_get_level(LED_PIN),
+                    gpio_get_level(WATER_PUMP_PIN),
                     gpio_get_level(O2_PUMP_PIN));
             esp_mqtt_client_publish(client, CONFIG_REPORT_TOPIC, report_msg, 0, 0, 0);
             bzero(report_msg, sizeof(report_msg));
-        }
-        else if (mqtt_status == 2)
-        {
+        } else if (mqtt_status == 2) {
             ESP_LOGI(FISH_TANK_TAG, "mqtt disconnection ");
         }
-        if(report_delay <= 0) {
+        if (report_delay <= 0) {
             report_delay = 1;
         }
-        if(report_delay > 18) {
+        if (report_delay > 18) {
             report_delay = 1;
         }
         vTaskDelay(10000 * report_delay / portTICK_RATE_MS);
@@ -376,10 +373,10 @@ static void report_task(void *parm)
     }
 }
 
-static void mqtt_app_start(void)
-{
+static void mqtt_app_start(void) {
     char lwt[64];
-    sprintf(lwt, "\"clientId\":\"%s\",\"chipId\":\"esp8266_%02x%02x%02x%02x%02x%02x\"", CONFIG_CLIENT_ID, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    sprintf(lwt, "\"clientId\":\"%s\",\"chipId\":\"esp8266_%02x%02x%02x%02x%02x%02x\"", CONFIG_CLIENT_ID, mac[0],
+            mac[1], mac[2], mac[3], mac[4], mac[5]);
     const esp_mqtt_client_config_t mqtt_cfg = {
             .uri = CONFIG_BROKER_URI,
             .client_id = CONFIG_CLIENT_ID,
@@ -388,7 +385,7 @@ static void mqtt_app_start(void)
             .lwt_topic = CONFIG_OFFLINE_TOPIC,
             .lwt_msg = lwt,
             .event_handle = mqtt_event_handler,
-            .cert_pem = (const char *)fs_ca_pem_start,
+            .cert_pem = (const char *) fs_ca_pem_start,
     };
 
     ESP_LOGI(FISH_TANK_TAG, "Free memory: %d bytes", esp_get_free_heap_size());
@@ -417,13 +414,13 @@ void after_network_connect(int type, int status, char *ip) {
         return;
     } else {
         oled_show_str(OLED_SYS_X, OLED_SYS_Y, "Network success   ", &Font_7x10, 0);
-        if (ip != NULL){
+        if (ip != NULL) {
             oled_show_str(OLED_WIFI_X, OLED_WIFI_Y, "IP:", &Font_7x10, 0);
             oled_show_str(OLED_WIFI_X + 22, OLED_WIFI_Y, ip, &Font_7x10, 0);
         }
 
         // mqtt connection...
-        if(loading == 0){
+        if (loading == 0) {
             ESP_LOGD(FISH_TANK_TAG, "sntp init...");
             initialize_sntp();
             xTaskCreate(show_current_time, "show_current_time", 4096, NULL, 10, NULL);
@@ -433,43 +430,68 @@ void after_network_connect(int type, int status, char *ip) {
     }
 }
 
-void DHT11_read(struct DHT11_t *in)
-{
-    int response = getData(in);
-    if (response == DHT_OK)
-    {
-        //Do something if the lecture is OK
+void fs_dht_task(void *arg) {
+    ESP_ERROR_CHECK(dht_init(DHT_PIN, false));
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+    char tmp[6] = {'\0'};
+    while (1) {
+        int humidity = 0;
+        int temperature = 0;
+        if (dht_read_data(DHT_TYPE_DHT11, DHT_PIN, &humidity, &temperature) == ESP_OK) {
+            // e.g. in dht22, 604 = 60.4%, 252 = 25.2 C
+            // If you want to print float data, you should run `make menuconfig`
+            // to enable full newlib and call dht_read_float_data() here instead
+            humidity = humidity / 10;
+            temperature = temperature / 10;
+            sprintf(tmp, "%02d/%02d", temperature, humidity);
+            oled_show_str(OLED_LED_X + 56 + 21, OLED_LED_Y, tmp, &Font_7x10, 0);
+            bzero(tmp, sizeof(tmp));
+            ESP_LOGI("DHT", "Humidity: %d Temperature: %d", humidity, temperature);
+        } else {
+            ESP_LOGI("DHT", "Fail to get dht temperature data\n");
+        }
+        vTaskDelay(30000 / portTICK_PERIOD_MS);
     }
-    else
-    {
-        //Handle the error
-        DHT_errorHandle(response);
-        in->temperature = -2;
-        in->humidity = -2;
-    }
+    vTaskDelete(NULL);
 }
 
-static void fs_dht11_task(void *arg)
-{
-    struct DHT11_t DTHsensor;
-    DTHsensor.PIN = DHT_PIN;
-    char tmp[6] = {'\0'};
-    while (1)
-    {
-        /* Reading sensors */
-        DHT11_read(&DTHsensor);
-        ESP_LOGD(FISH_TANK_TAG, "Temperature=%d ℃  Humidity=%d\n", DTHsensor.temperature, DTHsensor.humidity);
-        sprintf(tmp, "%02d/%02d", DTHsensor.temperature, DTHsensor.humidity);
-        oled_show_str(OLED_LED_X + 56 + 21, OLED_LED_Y, tmp, &Font_7x10, 0);
-        bzero(tmp, sizeof(tmp));
-        vTaskDelay(30000 / portTICK_RATE_MS);
-        // vTaskDelete(NULL);
-    }
-}
+
+//void DHT11_read(struct DHT11_t *in)
+//{
+//    int response = getData(in);
+//    if (response == DHT_OK)
+//    {
+//        //Do something if the lecture is OK
+//    }
+//    else
+//    {
+//        //Handle the error
+//        DHT_errorHandle(response);
+//        in->temperature = -2;
+//        in->humidity = -2;
+//    }
+//}
+//
+//static void fs_dht11_task(void *arg)
+//{
+//    struct DHT11_t DTHsensor;
+//    DTHsensor.PIN = DHT_PIN;
+//    char tmp[6] = {'\0'};
+//    while (1)
+//    {
+//        /* Reading sensors */
+//        DHT11_read(&DTHsensor);
+//        ESP_LOGD(FISH_TANK_TAG, "Temperature=%d ℃  Humidity=%d\n", DTHsensor.temperature, DTHsensor.humidity);
+//        sprintf(tmp, "%02d/%02d", DTHsensor.temperature, DTHsensor.humidity);
+////        oled_show_str(OLED_LED_X + 56 + 21, OLED_LED_Y, tmp, &Font_7x10, 0);
+//        bzero(tmp, sizeof(tmp));
+//        vTaskDelay(1000 / portTICK_RATE_MS);
+//        // vTaskDelete(NULL);
+//    }
+//}
 
 /* 'version' command */
-static int get_version()
-{
+static int get_version() {
     esp_chip_info_t info;
     esp_chip_info(&info);
     printf("IDF Version:%s\r\n", esp_get_idf_version());
@@ -518,11 +540,11 @@ void app_main(void) {
     oled_show_str(OLED_O2_X, OLED_O2_Y, "O2 PUMP:OFF", &Font_7x10, 0);
     oled_show_str(OLED_LED_X, OLED_LED_Y, "LED:OFF", &Font_7x10, 0);
     oled_show_str(OLED_LED_X + 56, OLED_LED_Y, "TH:", &Font_7x10, 0);
-    oled_show_str(OLED_LED_X + 56 + 21 , OLED_LED_Y, "20/22", &Font_7x10, 0);
+    oled_show_str(OLED_LED_X + 56 + 21, OLED_LED_Y, "20/22", &Font_7x10, 0);
     initialise_wifi(after_network_connect, show_message_handle);
     oled_show_str(OLED_TIME_X, OLED_TIME_Y, "Time:", &Font_7x10, 0);
     oled_show_str(OLED_TIME_X + 35, OLED_TIME_Y, "00-00 00:00", &Font_7x10, 0);
 
-    // init dht11
-    // xTaskCreate(fs_dht11_task, "fs_dht11_task", 4096, NULL, 10, NULL);
+    // // init dht11
+    xTaskCreate(fs_dht_task, "fs_dht_task", 4096, NULL, 10, NULL);
 }
