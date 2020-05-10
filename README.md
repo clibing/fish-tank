@@ -1,9 +1,3 @@
 ### Fish tank
 
-diy
-
-Automatic control of fish tank
-
-### Support
-
-* 
+Detail | [中文](./README_CN.md) 
