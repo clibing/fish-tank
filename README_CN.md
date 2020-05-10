@@ -27,6 +27,8 @@
 
 #### 电路周围
 
+![](doc/CircuitDiagram.png)
+
 * [ ] OLED 显示如下
   + 基础电路
     - GND: GND
