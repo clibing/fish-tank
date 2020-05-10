@@ -8,3 +8,5 @@ cmake-build-debug/
 .idea/
 *.iml
 .history/
+.DS_Store
+/*/.DS_Store
