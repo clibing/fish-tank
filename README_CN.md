@@ -2,7 +2,7 @@
 
 半自动的小型DIY鱼缸
 
-![](./doc/example/6.jpeg)
+![](./doc/example/6.png)
 
 ### 二、功能实现
 
