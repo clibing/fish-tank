@@ -201,7 +201,13 @@ message-timer(no)->other-ext
 
 * 4.3 相关资料
 
-### 五、参考
+### 五、升级
+
+* [ ] 使用ADC采集光敏电阻上的电压，控制LED照明的通断
+* [ ] 增加PWM控制电机的转速。理论可行，需要实际电路测试。受电机的扬程等因素的影响
+
+
+### 六、参考
 
 * [sdk](https://github.com/espressif/ESP8266_RTOS_SDK)
 * [document](https://docs.espressif.com/projects/esp8266-rtos-sdk/en/latest/?badge=latest)
