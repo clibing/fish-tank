@@ -287,8 +287,8 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event) {
             int tlen = event->topic_len;
             char receive_topic[tlen + 1];
             sprintf(receive_topic, "%.*s", event->topic_len, event->topic);
-            if (strcmp(receive_topic, CONFIG_SYS_TOPIC)) {
-                ESP_LOGI(FISH_TANK_TAG, "Recived system topic");
+            if (strcmp(receive_topic, CONFIG_SYS_TOPIC) == 0) {
+                ESP_LOGI(FISH_TANK_TAG, "Recived system topic, system topic: %s", CONFIG_SYS_TOPIC);
                 break;
             }
             // todo
