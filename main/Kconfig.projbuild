@@ -23,6 +23,13 @@ menu "Fish Tank"
             default "y"
             help
                 Select this option to enable OLED and show the submenu with OLED configuration choices.
+
+        config AUTO_CONTROL
+            int "Automatic control according to light intensity"
+            default 1
+            help 
+                Using ADC to read the voltage of photoresist affected by light for automatic control.
+
     endmenu
 
     menu "GPIO Pin Mode"
