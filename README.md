@@ -2,7 +2,7 @@
 
 ESP8266 Controller Pump, LED
 
-![](./doc/3d.png)
+![](./doc/CircuitDiagram.png)
 
 ![](./doc/pcb.png)
 
